@@ -15,12 +15,13 @@
     <title>Week Details</title>
     <!-- TODO: Link to your CSS framework or stylesheet. -->
     <link href='../common/styles.css' rel="stylesheet">
+    <script src="details.js" defer></script>
 </head>
 
 <body>
     <!-- TODO: Create a 'header' with a main heading ('h1'). Use a dummy title like "Week 1: Introduction to HTML". -->
     <header>
-        <h1>Week 1: Introduction to HTML</h1>
+        <h1 id="week-title">Week 1: Introduction to HTML</h1>
     </header>
     <!-- TODO: Create the 'main' content area. -->
     <main>
@@ -30,9 +31,9 @@
         <!-- TODO: Add a sub-heading ('h2') "Description & Notes". -->
         <!-- TODO: Add a paragraph ('p') with dummy text for the week's detailed notes. -->
         <article>
-            <p>Starts on: YYYY-MM-DD</p>
+            <p id="week-start-date">Starts on: YYYY-MM-DD</p>
             <h2>Description & Notes</h2>
-            <p>Lorem ipsum dolor sit amet consectetur, adipisicing elit. Dolorem nam quibusdam delectus sequi quaerat
+            <p id="week-description">Lorem ipsum dolor sit amet consectetur, adipisicing elit. Dolorem nam quibusdam delectus sequi quaerat
                 vero ad numquam harum voluptas, eveniet aut eos quasi nesciunt ea reprehenderit asperiores id nobis eum.
             </p>
             <!-- TODO: Add another sub-heading ('h2') "Exercises & Resources". -->
@@ -42,7 +43,7 @@
             <!-- End of the list. -->
             <!-- End of article. -->
             <h2>Exercises & Resources</h2>
-            <ul>
+            <ul id="week-links-list">
                 <li><a href="#">Exercise 1 - Basic Tags</a></li>
                 <li><a href="#">Week One Info</a></li>
                 <li><a href="#">Expected Work</a></li>
@@ -55,7 +56,7 @@
             <!-- Subsection 2.1: Existing Comments -->
             <!-- TODO: Add a container (like a 'div') for the list of comments. -->
             <!-- TODO: Add 1-2 dummy comments to show the structure. -->
-            <div>
+            <div id="comment-list">
                 <!-- Example Comment 1: -->
                 <!-- TODO: Use an 'article' for each comment. -->
                 <!-- TODO: Use a 'p' for the comment text (e.g., "I have a question about the 'header' tag."). -->
@@ -75,14 +76,14 @@
                 <!-- TODO: Create a 'form' for users to post new comments. Action can be '#'. -->
                 <!-- TODO: Use a 'fieldset' to group the controls. -->
                 <!-- TODO: Add a 'legend', e.g., "Ask a Question". -->
-                <form action="#">
+                <form action="#" id="comment-form">
                     <fieldset>
                         <legend>Ask a Question</legend>
                         <!-- TODO: Add a 'label' and 'textarea' for the comment box.
                          - label 'for': "new-comment"
                          - textarea 'id': "new-comment", required -->
                         <label for="new-comment"></label>
-                        <textarea id="new-comment" required></textarea>
+                        <textarea id="new-comment-text" required></textarea>
                         <!-- TODO: Add a 'button' to submit the comment.
                          - type="submit", Text: "Post Comment" -->
                         <button type="submit">Post Comment</button>

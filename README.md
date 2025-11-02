@@ -38,7 +38,7 @@
 <td>Disscusion, and Auth</td>
 <tr></tr>
 <td>Common</td>
-<td>Css, and Manage Users</td>
+<td>Css, index, and Manage Users</td>
 </table>
 ## A link to your live, hosted application on Replit.
 

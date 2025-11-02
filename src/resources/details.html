@@ -15,12 +15,13 @@
     <title>Resource Details</title>
     <!-- TODO: Link to your CSS framework or stylesheet. -->
     <link href='../common/styles.css' rel="stylesheet">
+    <script src="details.js" defer></script>
 </head>
 
 <body>
     <!-- TODO: Create a 'header' with a main heading ('h1'). You can use a dummy title like "Chapter 1 Notes". -->
     <header>
-        <h1>Chapter 1 Notes</h1>
+        <h1 id="resource-title">Chapter 1 Notes</h1>
     </header>
     <!-- TODO: Create the 'main' content area. -->
     <main>
@@ -32,10 +33,10 @@
                  - Consider adding 'target="_blank"' to open it in a new tab. -->
         <!-- End of article. -->
         <article>
-            <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Quam consequatur aliquam porro animi ipsum hic
+            <p id="resource-description">Lorem ipsum dolor sit amet consectetur adipisicing elit. Quam consequatur aliquam porro animi ipsum hic
                 numquam harum. Autem hic, cupiditate earum quia quos soluta quod distinctio, porro tempora, dolorum
                 deleniti!</p>
-            <a href="https://example.com" target="_black">Access Resource Material</a>
+            <a href="https://example.com" target="_black" id="resource-link">Access Resource Material</a>
         </article>
         <!-- Section 2: Discussion Forum -->
         <!-- TODO: Create a 'section' for the discussion, with an 'id' of "discussion-forum". -->
@@ -45,7 +46,7 @@
             <!-- Subsection 2.1: Existing Comments -->
             <!-- TODO: Add a container (like a 'div') for the list of comments. -->
             <!-- TODO: Add 1-2 dummy comments to show the structure. -->
-            <div>
+            <div id="comment-list">
                 <!-- Example Comment 1: -->
                 <!-- TODO: Use an 'article' for each comment. -->
                 <!-- TODO: Use a 'p' for the comment text (e.g., "This was very helpful, thanks!"). -->
@@ -67,7 +68,7 @@
             <!-- TODO: Create a 'form' for users to post new comments. Action can be '#'. -->
             <!-- TODO: Use a 'fieldset' to group the controls. -->
             <!-- TODO: Add a 'legend', e.g., "Leave a Comment". -->
-            <form action="#">
+            <form action="#" id="comment-form">
                 <fieldset>
                     <legend>Leave a Comment</legend>
                     <!-- TODO: Add a 'label' and 'textarea' for the comment box.

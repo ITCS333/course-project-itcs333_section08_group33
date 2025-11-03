@@ -26,19 +26,19 @@
 <th>Task</th>
 <tr></tr>
 <td>Hasan Qasim Hasan Alramil</td>
-<td>List View... etc</td>
+<td>List View</td>
 <tr></tr>
 <td>Sayed Mustafa Ali Mustafa Hasan</td>
-<td>Admin View etc...</td>
+<td>Admin</td>
 <tr></tr>
 <td>Sayed Hussain Alderazi</td>
-<td>Details  View... etc</td>
+<td>Details, index</td>
 <tr></tr>
 <td>Kadhim Abdulla Kadhim Alhadar</td>
 <td>Disscusion, and Auth</td>
 <tr></tr>
 <td>Common</td>
-<td>Css, index, and Manage Users</td>
+<td>Css, and Manage Users</td>
 </table>
 ## A link to your live, hosted application on Replit.
 

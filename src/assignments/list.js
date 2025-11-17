@@ -6,15 +6,17 @@
      <script src="list.js" defer></script>
 
   2. In `list.html`, add an `id="assignment-list-section"` to the
-     <section> element that will contain the assignment articles.
+     <section> element that will contain the assignment articles. *Done*
 
   3. Implement the TODOs below.
 */
+<script src="list.js" defer></script>
 
 // --- Element Selections ---
 // TODO: Select the section for the assignment list ('#assignment-list-section').
-
+let listSection = document.getElementById("assignment-list-section");
 // --- Functions ---
+
 
 /**
  * TODO: Implement the createAssignmentArticle function.
@@ -25,6 +27,7 @@
  */
 function createAssignmentArticle(assignment) {
   // ... your implementation here ...
+  
 }
 
 /**

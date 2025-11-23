@@ -25,6 +25,22 @@ let listSection = document.getElementById('resource-list-section');
  */
 function createResourceArticle(resource) {
   // ... your implementation here ...
+  let article = document.createElement('article');
+
+  let h2 = document.createElement('h2');
+  h2.textContent = resource.title;
+  article.appendChilf(h2);
+
+  let p = document.createElement('p');
+  p.textContent = resource.description;
+  article.appendChild(p);
+
+  let a = document.createElement('a');
+  a.href = `details.html?id=${resource.id}`;
+  a.textContent = 'View Resource & Discussion';
+  article.appendChild(a);
+
+  return article;
 }
 
 /**
@@ -40,6 +56,15 @@ function createResourceArticle(resource) {
  */
 async function loadResources() {
   // ... your implementation here ...
+  let response = await fetch('resources.json');
+  let resources = await response.json();
+
+  listSection.innerHTML = '';
+
+  resources.forEach(resource => {
+    let article = createResourceArticle(resource);
+    listSection.appendChild(article);
+  });
 }
 
 // --- Initial Page Load ---

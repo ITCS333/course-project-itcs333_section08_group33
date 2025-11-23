@@ -13,7 +13,7 @@
 
 // --- Element Selections ---
 // TODO: Select the section for the resource list ('#resource-list-section').
-
+let listSection = document.getElementById('resource-list-section');
 // --- Functions ---
 
 /**

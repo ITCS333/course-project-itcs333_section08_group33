@@ -45,18 +45,21 @@ let thAll = document.querySelectorAll('thead th')
  */
 function createStudentRow(student) {
   // ... your implementation here ...
-  let tr = document.createElement(tr);
-  let td0 = document.createElement(td);
-  let td1 = document.createElement(td);
-  let td2 = document.createElement(td);
-  let td3 = document.createElement(td);
-  let buttonEdit = document.createElement(button);
-  let buttonDelete = document.createElement(button);
+  let tr = document.createElement('tr');
+  let td0 = document.createElement('td');
+  let td1 = document.createElement('td');
+  let td2 = document.createElement('td');
+  let td3 = document.createElement('td');
+  let buttonEdit = document.createElement('button');
+  let buttonDelete = document.createElement('button');
 
   td0.innerHTML = student.name;
   td1.innerHTML = student.id;
   td2.innerHTML = student.email;
-  
+
+  buttonDelete.innerText = "Delete";
+  buttonEdit.innerHTML = "Edit";
+
   td3.appendChild(buttonEdit);
   td3.appendChild(buttonDelete);
 
@@ -79,6 +82,7 @@ function createStudentRow(student) {
 function renderTable(studentArray) {
   // ... your implementation here ...
   tbody.innerHTML = "";
+  
   studentArray.forEach(student => {
     let newTr = createStudentRow(student);
     tbody.appendChild(newTr);
@@ -99,18 +103,15 @@ function renderTable(studentArray) {
  */
 function handleChangePassword(event) {
   // ... your implementation here ...
- passwordForm.addEventListener('submit',function(event) 
-  {
     event.preventDefault();
-    let currPass = passwordForm.getElementById('current-password');
-    let newPass = passwordForm.getElementById('new-password');
-    let confPass = passwordForm.getElementById('confirm-password');
+    let currPass = document.getElementById('current-password');
+    let newPass = document.getElementById('new-password');
+    let confPass = document.getElementById('confirm-password');
     let txtCurrPass = currPass.value;
     let txtNewPass = newPass.value;
     let txtConfPass = confPass.value;
-    if(confPass != newPass){alert("Passwords do not match.");}
-    if(newPass.length < 8){alert('Password must be at least 8 charcters.')}
-  });
+    if (txtConfPass != txtNewPass) { alert("Passwords do not match."); return; }
+    if (txtNewPass.length < 8) { alert('Password must be at least 8 charcters.'); return; }
 }
 
 /**
@@ -130,31 +131,37 @@ function handleChangePassword(event) {
  */
 function handleAddStudent(event) {
   // ... your implementation here ...
-  addStudentForm.addEventListener('submit', function(event)
-  {
     event.preventDefault();
-    let stuName = addStudentForm.getElementById('student-name');
-    let stuId = addStudentForm.getElementById('student-id');
-    let stuEmail = addStudentForm.getElementById('student-email');
+    let stuName = document.getElementById('student-name');
+    let stuId = document.getElementById('student-id');
+    let stuEmail = document.getElementById('student-email');
+    let defPassword = document.getElementById('default-password');
     let txtStuName = stuName.value;
     let txtStuId = stuId.value;
     let txtStuEmail = stuEmail.value
 
-    if(txtStuName == "" || txtStuID == "" || txtStuEmail == ""){alert('Please fill out all required fields')}
+
+    if (txtStuName == "" || txtStuId == "" || txtStuEmail == "") { alert('Please fill out all required fields') }
     let flag = true;
-    students.forEach(student,n => {if(txtStuId == student[n].id){flag = false}});
-    if(flag == false){
+    students.forEach(student => { if (txtStuId == student.id) { return; } });
+    if (flag == false) {
       alert("ID exists")
-    }else
-      {
-        let stu = {txtStuName,txtStuId,txtStuEmail}
-        students.append(stu);
-        renderTable(students);
+      return;
+    } else {
+
+      let stu = {
+        name: txtStuName,
+        id: txtStuId,
+        email: txtStuEmail
       }
+      students.push(stu);
+      renderTable(students);
       stuName.value = '';
       stuId.value = '';
       stuEmail.value = '';
-  });
+      defPassword.value = '';
+
+    }
 }
 
 /**
@@ -170,6 +177,13 @@ function handleAddStudent(event) {
  */
 function handleTableClick(event) {
   // ... your implementation here ...
+  let tar = event.target;
+  if (tar.classList.contains('delete-btn')) {
+    const id = tar.dataset.id;
+    students = students.filter(student => student.id != id)
+    renderTable(students);
+  }
+
 }
 
 /**
@@ -223,6 +237,15 @@ function handleSort(event) {
  */
 async function loadStudentsAndInitialize() {
   // ... your implementation here ...
+  stuData = await (await fetch('./api/students.json')).json();
+
+  students = stuData;
+
+  renderTable(students);
+
+  passwordForm.addEventListener('submit', function (event) { handleChangePassword(event) });
+  addStudentForm.addEventListener('submit', function (event) { handleAddStudent(event) });
+  tbody.addEventListener('click', function (event) { handleTableClick(event) });
 }
 
 // --- Initial Page Load ---

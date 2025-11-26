@@ -18,18 +18,18 @@ let students = [];
 // the HTML document is parsed before this script runs.
 
 // TODO: Select the student table body (tbody).
-
+let tbody = document.querySelector('tbody');
 // TODO: Select the "Add Student" form.
 // (You'll need to add id="add-student-form" to this form in your HTML).
-
+let addStudentForm = document.getElementById('add-student-form');
 // TODO: Select the "Change Password" form.
 // (You'll need to add id="password-form" to this form in your HTML).
-
+let passwordForm = document.getElementById('password-form');
 // TODO: Select the search input field.
 // (You'll need to add id="search-input" to this input in your HTML).
 
 // TODO: Select all table header (th) elements in thead.
-
+let thAll = document.querySelectorAll('thead th')
 // --- Functions ---
 
 /**
@@ -45,6 +45,27 @@ let students = [];
  */
 function createStudentRow(student) {
   // ... your implementation here ...
+  let tr = document.createElement(tr);
+  let td0 = document.createElement(td);
+  let td1 = document.createElement(td);
+  let td2 = document.createElement(td);
+  let td3 = document.createElement(td);
+  let buttonEdit = document.createElement(button);
+  let buttonDelete = document.createElement(button);
+
+  td0.innerHTML = student.name;
+  td1.innerHTML = student.id;
+  td2.innerHTML = student.email;
+  
+  td3.appendChild(buttonEdit);
+  td3.appendChild(buttonDelete);
+
+  tr.appendChild(td0);
+  tr.appendChild(td1);
+  tr.appendChild(td2);
+  tr.appendChild(td3);
+
+  return tr;
 }
 
 /**
@@ -57,6 +78,11 @@ function createStudentRow(student) {
  */
 function renderTable(studentArray) {
   // ... your implementation here ...
+  tbody.innerHTML = "";
+  studentArray.forEach(student => {
+    let newTr = createStudentRow(student);
+    tbody.appendChild(newTr);
+  });
 }
 
 /**
@@ -73,6 +99,18 @@ function renderTable(studentArray) {
  */
 function handleChangePassword(event) {
   // ... your implementation here ...
+ passwordForm.addEventListener('submit',function(event) 
+  {
+    event.preventDefault();
+    let currPass = passwordForm.getElementById('current-password');
+    let newPass = passwordForm.getElementById('new-password');
+    let confPass = passwordForm.getElementById('confirm-password');
+    let txtCurrPass = currPass.value;
+    let txtNewPass = newPass.value;
+    let txtConfPass = confPass.value;
+    if(confPass != newPass){alert("Passwords do not match.");}
+    if(newPass.length < 8){alert('Password must be at least 8 charcters.')}
+  });
 }
 
 /**
@@ -92,6 +130,31 @@ function handleChangePassword(event) {
  */
 function handleAddStudent(event) {
   // ... your implementation here ...
+  addStudentForm.addEventListener('submit', function(event)
+  {
+    event.preventDefault();
+    let stuName = addStudentForm.getElementById('student-name');
+    let stuId = addStudentForm.getElementById('student-id');
+    let stuEmail = addStudentForm.getElementById('student-email');
+    let txtStuName = stuName.value;
+    let txtStuId = stuId.value;
+    let txtStuEmail = stuEmail.value
+
+    if(txtStuName == "" || txtStuID == "" || txtStuEmail == ""){alert('Please fill out all required fields')}
+    let flag = true;
+    students.forEach(student,n => {if(txtStuId == student[n].id){flag = false}});
+    if(flag == false){
+      alert("ID exists")
+    }else
+      {
+        let stu = {txtStuName,txtStuId,txtStuEmail}
+        students.append(stu);
+        renderTable(students);
+      }
+      stuName.value = '';
+      stuId.value = '';
+      stuEmail.value = '';
+  });
 }
 
 /**

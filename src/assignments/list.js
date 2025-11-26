@@ -27,6 +27,33 @@ let listSection = document.getElementById("assignment-list-section");
  */
 function createAssignmentArticle(assignment) {
   // ... your implementation here ...
+  const {id, title, dueDate, description} = assignment;
+
+  // Create article element
+  let article = document.createElement("article");
+
+  // Create and append h2 for title
+  let h2 = document.createElement("h2");
+  h2.textContent = title;
+  article.appendChild(h2);
+
+  // Create and append p for due date
+  let dueDateP = document.createElement("p");
+  dueDateP.textContent = `Due Date: ${dueDate}`;
+  article.appendChild(dueDateP);
+
+  // Create and append p for description
+  let descP = document.createElement("p");
+  descP.textContent = description;
+  article.appendChild(descP);
+
+  // Create and append a for view details link
+  let link = document.createElement("a");
+  link.href = `details.html?id=${id}`;
+  link.textContent = "View Details";
+  article.appendChild(link);
+
+  return article;
   
 }
 
@@ -43,6 +70,26 @@ function createAssignmentArticle(assignment) {
  */
 async function loadAssignments() {
   // ... your implementation here ...
+  try {
+    // 1. Fetch data from 'assignments.json'
+    const response = await fetch('assignments.json');
+    
+    // 2. Parse the JSON response into an array
+    const assignments = await response.json();
+    
+    // 3. Clear any existing content from listSection
+    listSection.innerHTML = '';
+    
+    // 4. Loop through the assignments array
+    assignments.forEach(assignment => {
+      // Call createAssignmentArticle()
+      const article = createAssignmentArticle(assignment);
+      // Append the returned <article> element to listSection
+      listSection.appendChild(article);
+    });
+  } catch (error) {
+    console.error('Error loading assignments:', error);
+  }
 }
 
 // --- Initial Page Load ---

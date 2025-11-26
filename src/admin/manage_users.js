@@ -18,18 +18,18 @@ let students = [];
 // the HTML document is parsed before this script runs.
 
 // TODO: Select the student table body (tbody).
-
+let tbody = document.querySelector('tbody');
 // TODO: Select the "Add Student" form.
 // (You'll need to add id="add-student-form" to this form in your HTML).
-
+let addStudentForm = document.getElementById('add-student-form');
 // TODO: Select the "Change Password" form.
 // (You'll need to add id="password-form" to this form in your HTML).
-
+let passwordForm = document.getElementById('password-form');
 // TODO: Select the search input field.
 // (You'll need to add id="search-input" to this input in your HTML).
 
 // TODO: Select all table header (th) elements in thead.
-
+let thAll = document.querySelectorAll('thead th')
 // --- Functions ---
 
 /**
@@ -45,6 +45,30 @@ let students = [];
  */
 function createStudentRow(student) {
   // ... your implementation here ...
+  let tr = document.createElement('tr');
+  let td0 = document.createElement('td');
+  let td1 = document.createElement('td');
+  let td2 = document.createElement('td');
+  let td3 = document.createElement('td');
+  let buttonEdit = document.createElement('button');
+  let buttonDelete = document.createElement('button');
+
+  td0.innerHTML = student.name;
+  td1.innerHTML = student.id;
+  td2.innerHTML = student.email;
+
+  buttonDelete.innerText = "Delete";
+  buttonEdit.innerHTML = "Edit";
+
+  td3.appendChild(buttonEdit);
+  td3.appendChild(buttonDelete);
+
+  tr.appendChild(td0);
+  tr.appendChild(td1);
+  tr.appendChild(td2);
+  tr.appendChild(td3);
+
+  return tr;
 }
 
 /**
@@ -57,6 +81,12 @@ function createStudentRow(student) {
  */
 function renderTable(studentArray) {
   // ... your implementation here ...
+  tbody.innerHTML = "";
+  
+  studentArray.forEach(student => {
+    let newTr = createStudentRow(student);
+    tbody.appendChild(newTr);
+  });
 }
 
 /**
@@ -73,6 +103,15 @@ function renderTable(studentArray) {
  */
 function handleChangePassword(event) {
   // ... your implementation here ...
+    event.preventDefault();
+    let currPass = document.getElementById('current-password');
+    let newPass = document.getElementById('new-password');
+    let confPass = document.getElementById('confirm-password');
+    let txtCurrPass = currPass.value;
+    let txtNewPass = newPass.value;
+    let txtConfPass = confPass.value;
+    if (txtConfPass != txtNewPass) { alert("Passwords do not match."); return; }
+    if (txtNewPass.length < 8) { alert('Password must be at least 8 charcters.'); return; }
 }
 
 /**
@@ -92,6 +131,37 @@ function handleChangePassword(event) {
  */
 function handleAddStudent(event) {
   // ... your implementation here ...
+    event.preventDefault();
+    let stuName = document.getElementById('student-name');
+    let stuId = document.getElementById('student-id');
+    let stuEmail = document.getElementById('student-email');
+    let defPassword = document.getElementById('default-password');
+    let txtStuName = stuName.value;
+    let txtStuId = stuId.value;
+    let txtStuEmail = stuEmail.value
+
+
+    if (txtStuName == "" || txtStuId == "" || txtStuEmail == "") { alert('Please fill out all required fields') }
+    let flag = true;
+    students.forEach(student => { if (txtStuId == student.id) { return; } });
+    if (flag == false) {
+      alert("ID exists")
+      return;
+    } else {
+
+      let stu = {
+        name: txtStuName,
+        id: txtStuId,
+        email: txtStuEmail
+      }
+      students.push(stu);
+      renderTable(students);
+      stuName.value = '';
+      stuId.value = '';
+      stuEmail.value = '';
+      defPassword.value = '';
+
+    }
 }
 
 /**
@@ -107,6 +177,13 @@ function handleAddStudent(event) {
  */
 function handleTableClick(event) {
   // ... your implementation here ...
+  let tar = event.target;
+  if (tar.classList.contains('delete-btn')) {
+    const id = tar.dataset.id;
+    students = students.filter(student => student.id != id)
+    renderTable(students);
+  }
+
 }
 
 /**
@@ -160,6 +237,15 @@ function handleSort(event) {
  */
 async function loadStudentsAndInitialize() {
   // ... your implementation here ...
+  stuData = await (await fetch('./api/students.json')).json();
+
+  students = stuData;
+
+  renderTable(students);
+
+  passwordForm.addEventListener('submit', function (event) { handleChangePassword(event) });
+  addStudentForm.addEventListener('submit', function (event) { handleAddStudent(event) });
+  tbody.addEventListener('click', function (event) { handleTableClick(event) });
 }
 
 // --- Initial Page Load ---

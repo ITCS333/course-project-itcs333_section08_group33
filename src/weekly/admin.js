@@ -17,8 +17,10 @@ let weeks = [];
 
 // --- Element Selections ---
 // TODO: Select the week form ('#week-form').
+const weekForm = document.getElementById('week-form');
 
 // TODO: Select the weeks table body ('#weeks-tbody').
+const weeksTableBody = document.getElementById('weeks-tbody');
 
 // --- Functions ---
 
@@ -34,6 +36,40 @@ let weeks = [];
  */
 function createWeekRow(week) {
   // ... your implementation here ...
+  const tr = document.createElement('tr');
+
+  const titleTd = document.createElement('td');
+  titleTd.textContent = week.title || '';
+
+  const dateTd = document.createElement('td');
+  dateTd.textContent = week.startDate || '';
+
+  const descTd = document.createElement('td');
+  descTd.textContent = week.description || '';
+
+  const actionsTd = document.createElement('td');
+
+  const editBtn = document.createElement('button');
+  editBtn.type = 'button';
+  editBtn.className = 'edit-btn';
+  editBtn.dataset.id = week.id;
+  editBtn.textContent = 'Edit';
+
+  const deleteBtn = document.createElement('button');
+  deleteBtn.type = 'button';
+  deleteBtn.className = 'delete-btn';
+  deleteBtn.dataset.id = week.id;
+  deleteBtn.textContent = 'Delete';
+
+  actionsTd.appendChild(editBtn);
+  actionsTd.appendChild(deleteBtn);
+
+  tr.appendChild(titleTd);
+  tr.appendChild(dateTd);
+  tr.appendChild(descTd);
+  tr.appendChild(actionsTd);
+
+  return tr;
 }
 
 /**
@@ -46,6 +82,12 @@ function createWeekRow(week) {
  */
 function renderTable() {
   // ... your implementation here ...
+  if (!weeksTableBody) return;
+  weeksTableBody.innerHTML = '';
+  weeks.forEach(week => {
+    const row = createWeekRow(week);
+    weeksTableBody.appendChild(row);
+  });
 }
 
 /**
@@ -63,6 +105,36 @@ function renderTable() {
  */
 function handleAddWeek(event) {
   // ... your implementation here ...
+  event.preventDefault();
+  if (!weekForm) return;
+
+  const titleEl = document.getElementById('week-title');
+  const startEl = document.getElementById('week-start-date');
+  const descEl = document.getElementById('week-description');
+  const linksEl = document.getElementById('week-links');
+
+  const title = titleEl?.value?.trim() || '';
+  const startDate = startEl?.value || '';
+  const description = descEl?.value?.trim() || '';
+  const linksRaw = linksEl?.value || '';
+  const links = linksRaw.split('\n').map(s => s.trim()).filter(Boolean);
+
+  if (!title || !startDate) {
+    alert('Please provide at least a title and a start date for the week.');
+    return;
+  }
+
+  const newWeek = {
+    id: `wk_${Date.now()}`,
+    title,
+    startDate,
+    description,
+    links
+  };
+
+  weeks.push(newWeek);
+  renderTable();
+  weekForm.reset();
 }
 
 /**
@@ -77,6 +149,36 @@ function handleAddWeek(event) {
  */
 function handleTableClick(event) {
   // ... your implementation here ...
+  const target = event.target;
+  if (!target) return;
+
+  if (target.classList && target.classList.contains('delete-btn')) {
+    const id = target.dataset.id;
+    if (!id) return;
+    weeks = weeks.filter(w => String(w.id) !== String(id));
+    renderTable();
+    return;
+  }
+
+  if (target.classList && target.classList.contains('edit-btn')) {
+    const id = target.dataset.id;
+    if (!id) return;
+    const wk = weeks.find(w => String(w.id) === String(id));
+    if (!wk) return;
+
+    const newTitle = prompt('Edit week title:', wk.title);
+    if (newTitle === null) return;
+    const newStart = prompt('Edit start date (YYYY-MM-DD):', wk.startDate || '');
+    if (newStart === null) return;
+    const newDesc = prompt('Edit description:', wk.description || '');
+    if (newDesc === null) return;
+
+    wk.title = String(newTitle).trim() || wk.title;
+    wk.startDate = String(newStart).trim() || wk.startDate;
+    wk.description = String(newDesc).trim();
+    renderTable();
+    return;
+  }
 }
 
 /**
@@ -91,6 +193,24 @@ function handleTableClick(event) {
  */
 async function loadAndInitialize() {
   // ... your implementation here ...
+  try {
+    let resp = await fetch('api/weeks.json');
+    if (!resp.ok) {
+      resp = await fetch('weeks.json');
+    }
+    if (resp.ok) {
+      const data = await resp.json();
+      if (Array.isArray(data)) weeks = data;
+      else if (data && Array.isArray(data.weeks)) weeks = data.weeks;
+    }
+  } catch (err) {
+    console.error('Failed to load weeks.json:', err);
+  }
+
+  renderTable();
+
+  if (weekForm) weekForm.addEventListener('submit', handleAddWeek);
+  if (weeksTableBody) weeksTableBody.addEventListener('click', handleTableClick);
 }
 
 // --- Initial Page Load ---

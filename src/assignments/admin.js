@@ -17,8 +17,13 @@ let assignments = [];
 
 // --- Element Selections ---
 // TODO: Select the assignment form ('#assignment-form').
+// Implementation (preserve TODO comment):
+const assignmentForm = document.getElementById('assignment-form');
 
 // TODO: Select the assignments table body ('#assignments-tbody').
+// Implementation (preserve TODO comment):
+// Prefer explicit tbody id if present, otherwise fall back to the table's tbody.
+const assignmentsTableBody = document.getElementById('assignments-tbody') || document.querySelector('#assignments-table tbody');
 
 // --- Functions ---
 
@@ -34,6 +39,36 @@ let assignments = [];
  */
 function createAssignmentRow(assignment) {
   // ... your implementation here ...
+  const tr = document.createElement('tr');
+
+  const titleTd = document.createElement('td');
+  titleTd.textContent = assignment.title || '';
+
+  const dueTd = document.createElement('td');
+  dueTd.textContent = assignment.dueDate || '';
+
+  const actionsTd = document.createElement('td');
+
+  const editBtn = document.createElement('button');
+  editBtn.type = 'button';
+  editBtn.className = 'edit-btn';
+  editBtn.dataset.id = assignment.id;
+  editBtn.textContent = 'Edit';
+
+  const deleteBtn = document.createElement('button');
+  deleteBtn.type = 'button';
+  deleteBtn.className = 'delete-btn';
+  deleteBtn.dataset.id = assignment.id;
+  deleteBtn.textContent = 'Delete';
+
+  actionsTd.appendChild(editBtn);
+  actionsTd.appendChild(deleteBtn);
+
+  tr.appendChild(titleTd);
+  tr.appendChild(dueTd);
+  tr.appendChild(actionsTd);
+
+  return tr;
 }
 
 /**
@@ -45,7 +80,13 @@ function createAssignmentRow(assignment) {
  * append the resulting <tr> to `assignmentsTableBody`.
  */
 function renderTable() {
-  // ... your implementation here ...
+   // ... your implementation here ...
+  if (!assignmentsTableBody) return;
+  assignmentsTableBody.innerHTML = '';
+  assignments.forEach(assignment => {
+    const row = createAssignmentRow(assignment);
+    assignmentsTableBody.appendChild(row);
+  });
 }
 
 /**
@@ -61,6 +102,35 @@ function renderTable() {
  */
 function handleAddAssignment(event) {
   // ... your implementation here ...
+  event.preventDefault();
+  if (!assignmentForm) return;
+
+  const titleEl = document.getElementById('assignment-title');
+  const descEl = document.getElementById('assignment-description');
+  const dueEl = document.getElementById('assignment-due-date');
+  const filesEl = document.getElementById('assignment-files');
+
+  const title = titleEl?.value?.trim() || '';
+  const description = descEl?.value?.trim() || '';
+  const dueDate = dueEl?.value || '';
+  const files = filesEl?.value?.trim() || '';
+
+  if (!title || !dueDate) {
+    alert('Please provide at least a title and due date.');
+    return;
+  }
+
+  const newAssignment = {
+    id: `asg_${Date.now()}`,
+    title,
+    description,
+    dueDate,
+    files
+  };
+
+  assignments.push(newAssignment);
+  renderTable();
+  assignmentForm.reset();
 }
 
 /**
@@ -75,6 +145,30 @@ function handleAddAssignment(event) {
  */
 function handleTableClick(event) {
   // ... your implementation here ...
+  const target = event.target;
+  if (!target) return;
+
+  if (target.classList.contains('delete-btn')) {
+    const id = target.dataset.id;
+    if (!id) return;
+    assignments = assignments.filter(a => String(a.id) !== String(id));
+    renderTable();
+    return;
+  }
+
+  // (Optional) handle edit click - simple alert for now (comment preserved)
+  if (target.classList.contains('edit-btn')) {
+    const id = target.dataset.id;
+    if (!id) return;
+    const asg = assignments.find(a => String(a.id) === String(id));
+    if (!asg) return;
+    // Basic inline edit could be implemented; for now show simple prompt flow
+    const newTitle = prompt('Edit assignment title:', asg.title);
+    if (newTitle === null) return; // cancelled
+    asg.title = String(newTitle).trim() || asg.title;
+    renderTable();
+    return;
+  }
 }
 
 /**
@@ -89,6 +183,24 @@ function handleTableClick(event) {
  */
 async function loadAndInitialize() {
   // ... your implementation here ...
+    try {
+    let resp = await fetch('api/assignments.json');
+    if (!resp.ok) {
+      // fallback to assignments.json at same folder
+      resp = await fetch('assignments.json');
+    }
+    if (resp.ok) {
+      const data = await resp.json();
+      if (Array.isArray(data)) assignments = data;
+    }
+  } catch (err) {
+    console.error('Failed to load assignments:', err);
+  }
+
+  renderTable();
+
+  if (assignmentForm) assignmentForm.addEventListener('submit', handleAddAssignment);
+  if (assignmentsTableBody) assignmentsTableBody.addEventListener('click', handleTableClick);
 }
 
 // --- Initial Page Load ---

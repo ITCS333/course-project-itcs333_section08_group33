@@ -17,8 +17,10 @@ let resources = [];
 
 // --- Element Selections ---
 // TODO: Select the resource form ('#resource-form').
+const resourceForm = document.getElementById('resource-form');
 
 // TODO: Select the resources table body ('#resources-tbody').
+const resourcesTableBody = document.getElementById('resources-tbody');
 
 // --- Functions ---
 
@@ -34,6 +36,36 @@ let resources = [];
  */
 function createResourceRow(resource) {
   // ... your implementation here ...
+  const tr = document.createElement('tr');
+
+  const titleTd = document.createElement('td');
+  titleTd.textContent = resource.title || '';
+
+  const descTd = document.createElement('td');
+  descTd.textContent = resource.description || '';
+
+  const actionsTd = document.createElement('td');
+
+  const editBtn = document.createElement('button');
+  editBtn.type = 'button';
+  editBtn.className = 'edit-btn';
+  editBtn.dataset.id = resource.id;
+  editBtn.textContent = 'Edit';
+
+  const deleteBtn = document.createElement('button');
+  deleteBtn.type = 'button';
+  deleteBtn.className = 'delete-btn';
+  deleteBtn.dataset.id = resource.id;
+  deleteBtn.textContent = 'Delete';
+
+  actionsTd.appendChild(editBtn);
+  actionsTd.appendChild(deleteBtn);
+
+  tr.appendChild(titleTd);
+  tr.appendChild(descTd);
+  tr.appendChild(actionsTd);
+
+  return tr;
 }
 
 /**
@@ -46,6 +78,16 @@ function createResourceRow(resource) {
  */
 function renderTable() {
   // ... your implementation here ...
+
+  if (!resourcesTableBody) return;
+  // Clear existing rows
+  resourcesTableBody.innerHTML = '';
+
+  // Append rows for each resource
+  resources.forEach(resource => {
+    const row = createResourceRow(resource);
+    resourcesTableBody.appendChild(row);
+  });
 }
 
 /**
@@ -61,6 +103,33 @@ function renderTable() {
  */
 function handleAddResource(event) {
   // ... your implementation here ...
+
+  event.preventDefault();
+  if (!resourceForm) return;
+
+  const titleEl = document.getElementById('resource-title');
+  const descEl = document.getElementById('resource-description');
+  const linkEl = document.getElementById('resource-link');
+
+  const title = titleEl?.value?.trim() || '';
+  const description = descEl?.value?.trim() || '';
+  const link = linkEl?.value?.trim() || '';
+
+  if (!title || !link) {
+    alert('Please provide a title and a link for the resource.');
+    return;
+  }
+
+  const newResource = {
+    id: `res_${Date.now()}`,
+    title,
+    description,
+    link
+  };
+
+  resources.push(newResource);
+  renderTable();
+  resourceForm.reset();
 }
 
 /**
@@ -75,6 +144,39 @@ function handleAddResource(event) {
  */
 function handleTableClick(event) {
   // ... your implementation here ...
+
+  const target = event.target;
+  if (!target) return;
+
+  // Delete flow
+  if (target.classList && target.classList.contains('delete-btn')) {
+    const id = target.dataset.id;
+    if (!id) return;
+    resources = resources.filter(r => String(r.id) !== String(id));
+    renderTable();
+    return;
+  }
+
+  // Edit flow (basic inline prompt)
+  if (target.classList && target.classList.contains('edit-btn')) {
+    const id = target.dataset.id;
+    if (!id) return;
+    const res = resources.find(r => String(r.id) === String(id));
+    if (!res) return;
+
+    const newTitle = prompt('Edit resource title:', res.title);
+    if (newTitle === null) return; // cancelled
+    const newDesc = prompt('Edit resource description:', res.description || '');
+    if (newDesc === null) return;
+    const newLink = prompt('Edit resource link (full URL):', res.link || '');
+    if (newLink === null) return;
+
+    res.title = String(newTitle).trim() || res.title;
+    res.description = String(newDesc).trim();
+    res.link = String(newLink).trim() || res.link;
+    renderTable();
+    return;
+  }
 }
 
 /**
@@ -89,6 +191,33 @@ function handleTableClick(event) {
  */
 async function loadAndInitialize() {
   // ... your implementation here ...
+
+  try {
+    // Attempt to load resources from the API folder relative to this page
+    let resp = await fetch('api/resources.json');
+    if (!resp.ok) {
+      // Fallback to resources.json in same folder if present
+      resp = await fetch('resources.json');
+    }
+
+    if (resp.ok) {
+      const data = await resp.json();
+      if (Array.isArray(data)) {
+        resources = data;
+      } else if (data && Array.isArray(data.resources)) {
+        resources = data.resources;
+      }
+    }
+  } catch (err) {
+    // Fail silently but log for debugging
+    console.error('Failed to load resources.json:', err);
+  }
+
+  renderTable();
+
+  // Wire up event listeners
+  if (resourceForm) resourceForm.addEventListener('submit', handleAddResource);
+  if (resourcesTableBody) resourcesTableBody.addEventListener('click', handleTableClick);
 }
 
 // --- Initial Page Load ---

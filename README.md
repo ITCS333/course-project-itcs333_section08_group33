@@ -30,18 +30,18 @@
 <th>Task</th>
 <tr>
 <td>Hasan Qasim Hasan Alramil</td>
-<td>List View</td>
+<td>List View Folders(weekly, resources, assignments)</td>
 </tr>
 <tr>
 <td>Sayed Mustafa Ali Mustafa Hasan</td>
-<td>Admin</td>
+<td>Admin Folders(weekly, resources, assignments)</td>
 </tr>
 <tr>
 <td>Sayed Hussain Alderazi</td>
-<td>Details, index</td>
+<td>Details, index Folders(weekly, resources, assignments)</td>
 <tr>
 <td>Kadhim Abdulla Kadhim Alhadar</td>
-<td>Disscusion, and Auth</td>
+<td>board, topic, and login Folders(auth, disscusion)</td>
 </tr>
 <tr>
 <td>Common</td>

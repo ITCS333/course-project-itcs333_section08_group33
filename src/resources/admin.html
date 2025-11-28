@@ -17,12 +17,24 @@
     <!-- TODO: Add a title, e.g., "Manage Resources". -->
 
     <!-- TODO: Link to your CSS framework or stylesheet. -->
+    <!-- Implementation inserted below (preserve TODO comments above) -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Resources</title>
+    <link href="../common/styles.css" rel="stylesheet">
 </head>
 <body>
 
     <!-- TODO: Create a 'header' with a main heading ('h1') "Manage Course Resources". -->
+    <!-- Implementation inserted below (preserve TODO comment above) -->
+    <header>
+        <h1>Manage Course Resources</h1>
+        <p>Admin interface to add, edit, and remove course resources.</p>
+    </header>
 
     <!-- TODO: Create the 'main' content area. -->
+    <!-- Implementation inserted below (preserve TODO comment above) -->
+    <main>
 
         <!-- Section 1: Add/Edit Resource Form -->
         <!-- TODO: Create a 'section' for the form. -->
@@ -46,6 +58,26 @@
 
                     <!-- TODO: Add a 'button' to submit the form.
                          - id="add-resource", type="submit", Text: "Add Resource" -->
+                <!-- Implementation inserted below (preserve TODO comments above) -->
+                <section id="resource-form-section">
+                    <h2>Add a New Resource</h2>
+                    <form id="resource-form" action="#" method="post">
+                        <fieldset>
+                            <legend>Resource Details</legend>
+
+                            <label for="resource-title">Title</label>
+                            <input id="resource-title" type="text" required placeholder="Chapter 1 Notes">
+
+                            <label for="resource-description">Description</label>
+                            <textarea id="resource-description" rows="4" placeholder="Brief description..."></textarea>
+
+                            <label for="resource-link">Resource Link</label>
+                            <input id="resource-link" type="url" required placeholder="https://example.com/resource.pdf">
+
+                            <button id="add-resource" type="submit">Add Resource</button>
+                        </fieldset>
+                    </form>
+                </section>
                 <!-- End of fieldset. -->
             <!-- End of form. -->
         <!-- End of form section. -->
@@ -77,10 +109,42 @@
                         <!-- TODO: Add a 'td' with "Edit" and "Delete" buttons. -->
                     <!-- End of the row. -->
 
+                <!-- Implementation inserted below (preserve TODO comments above) -->
+                <section id="resources-list-section">
+                    <h2>Existing Resources</h2>
+                    <table id="resources-table" border="1" cellspacing="0" cellpadding="6">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Description</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resources-tbody">
+                            <tr>
+                                <td>Chapter 1 Notes</td>
+                                <td>Comprehensive notes covering all topics in Chapter 1.</td>
+                                <td>
+                                    <button type="button" class="edit-btn" data-id="res_1">Edit</button>
+                                    <button type="button" class="delete-btn" data-id="res_1">Delete</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>External Link: MDN</td>
+                                <td>Useful external documentation for web development.</td>
+                                <td>
+                                    <button type="button" class="edit-btn" data-id="res_2">Edit</button>
+                                    <button type="button" class="delete-btn" data-id="res_2">Delete</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </section>
+
                 <!-- End of tbody. -->
             <!-- End of table. -->
-        <!-- End of resources list section. -->
-
+      <!-- End of resources list section. -->
+     </main>
     <!-- End of main. -->
 </body>
 </html>

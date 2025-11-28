@@ -27,9 +27,9 @@ let addStudentForm = document.getElementById('add-student-form');
 let passwordForm = document.getElementById('password-form');
 // TODO: Select the search input field.
 // (You'll need to add id="search-input" to this input in your HTML).
-
+let searchInput = document.getElementById('search-input');
 // TODO: Select all table header (th) elements in thead.
-let thAll = document.querySelectorAll('thead th')
+let thAll = document.querySelectorAll('thead th');
 // --- Functions ---
 
 /**
@@ -59,6 +59,10 @@ function createStudentRow(student) {
 
   buttonDelete.innerText = "Delete";
   buttonEdit.innerHTML = "Edit";
+  buttonDelete.className = 'delete-btn';
+  buttonEdit.dataset.id = student.id;
+  buttonDelete.dataset.id = student.id;
+  buttonEdit.className = 'edit-btn';
 
   td3.appendChild(buttonEdit);
   td3.appendChild(buttonDelete);
@@ -82,7 +86,7 @@ function createStudentRow(student) {
 function renderTable(studentArray) {
   // ... your implementation here ...
   tbody.innerHTML = "";
-  
+
   studentArray.forEach(student => {
     let newTr = createStudentRow(student);
     tbody.appendChild(newTr);
@@ -103,15 +107,21 @@ function renderTable(studentArray) {
  */
 function handleChangePassword(event) {
   // ... your implementation here ...
-    event.preventDefault();
-    let currPass = document.getElementById('current-password');
-    let newPass = document.getElementById('new-password');
-    let confPass = document.getElementById('confirm-password');
-    let txtCurrPass = currPass.value;
-    let txtNewPass = newPass.value;
-    let txtConfPass = confPass.value;
-    if (txtConfPass != txtNewPass) { alert("Passwords do not match."); return; }
-    if (txtNewPass.length < 8) { alert('Password must be at least 8 charcters.'); return; }
+  event.preventDefault();
+  let currPass = document.getElementById('current-password');
+  let newPass = document.getElementById('new-password');
+  let confPass = document.getElementById('confirm-password');
+  let txtCurrPass = currPass.value;
+  let txtNewPass = newPass.value;
+  let txtConfPass = confPass.value;
+  if (txtConfPass != txtNewPass) { alert("Passwords do not match."); return; }else
+  if (txtNewPass.length < 8) { alert('Password must be at least 8 charcters.'); return; }
+  else{
+    alert("Password updated successfully");
+    currPass.value = '';
+    newPass.value = '';
+    confPass.value = '';
+  }
 }
 
 /**
@@ -131,37 +141,37 @@ function handleChangePassword(event) {
  */
 function handleAddStudent(event) {
   // ... your implementation here ...
-    event.preventDefault();
-    let stuName = document.getElementById('student-name');
-    let stuId = document.getElementById('student-id');
-    let stuEmail = document.getElementById('student-email');
-    let defPassword = document.getElementById('default-password');
-    let txtStuName = stuName.value;
-    let txtStuId = stuId.value;
-    let txtStuEmail = stuEmail.value
+  event.preventDefault();
+  let stuName = document.getElementById('student-name');
+  let stuId = document.getElementById('student-id');
+  let stuEmail = document.getElementById('student-email');
+  let defPassword = document.getElementById('default-password');
+  let txtStuName = stuName.value;
+  let txtStuId = stuId.value;
+  let txtStuEmail = stuEmail.value
 
 
-    if (txtStuName == "" || txtStuId == "" || txtStuEmail == "") { alert('Please fill out all required fields') }
-    let flag = true;
-    students.forEach(student => { if (txtStuId == student.id) { return; } });
-    if (flag == false) {
-      alert("ID exists")
-      return;
-    } else {
+  if (txtStuName == "" || txtStuId == "" || txtStuEmail == "") { alert('Please fill out all required fields') }
+  let flag = true;
+  students.forEach(student => { if (txtStuId == student.id) { return; } });
+  if (flag == false) {
+    alert("ID exists")
+    return;
+  } else {
 
-      let stu = {
-        name: txtStuName,
-        id: txtStuId,
-        email: txtStuEmail
-      }
-      students.push(stu);
-      renderTable(students);
-      stuName.value = '';
-      stuId.value = '';
-      stuEmail.value = '';
-      defPassword.value = '';
-
+    let stu = {
+      name: txtStuName,
+      id: txtStuId,
+      email: txtStuEmail
     }
+    students.push(stu);
+    renderTable(students);
+    stuName.value = '';
+    stuId.value = '';
+    stuEmail.value = '';
+    defPassword.value = '';
+
+  }
 }
 
 /**
@@ -177,10 +187,15 @@ function handleAddStudent(event) {
  */
 function handleTableClick(event) {
   // ... your implementation here ...
+  console.log('deleted');
   let tar = event.target;
+  console.log(tar);
   if (tar.classList.contains('delete-btn')) {
     const id = tar.dataset.id;
-    students = students.filter(student => student.id != id)
+    console.log(id);
+    students = students.filter(student => {return student.id != id})
+    console.log("TAG:", tar.tagName, "CLASS:", tar.className, "DATA:", tar.dataset);
+    console.log(students);
     renderTable(students);
   }
 
@@ -199,6 +214,14 @@ function handleTableClick(event) {
  */
 function handleSearch(event) {
   // ... your implementation here ...
+  const lwc = searchInput.value.toLowerCase();
+  const regxLwc = new RegExp(lwc);
+  if (lwc == '') { renderTable(students); }
+  else {
+    const subset = students.filter(student => { return regxLwc.test(student.name.toLowerCase()); });
+    renderTable(subset);
+  }
+
 }
 
 /**
@@ -217,6 +240,43 @@ function handleSearch(event) {
  */
 function handleSort(event) {
   // ... your implementation here ...
+  const col = event.currentTarget.cellIndex;
+  let colName = '';
+  switch (col) {
+    case 0:
+      thAll.forEach(th => {
+        let dir = th.dataset.sortDir || 'asc';
+        dir = dir === "asc" ? "desc" : "asc";
+        th.dataset.sortDir = dir;
+        if (dir == 'asc') { students.sort((a, b) => a.name.localeCompare(b.name)); } else
+          if (dir == 'desc') { students.sort((a, b) => b.name.localeCompare(a.name)); }
+      })
+      renderTable(students);
+      break;
+    case 1:
+      thAll.forEach(th => {
+        let dir = th.dataset.sortDir || 'asc';
+        dir = dir === "asc" ? "desc" : "asc";
+        th.dataset.sortDir = dir;
+        if (dir == 'asc') { students.sort((a, b) => b.id - a.id); } else
+          if (dir == 'desc') { students.sort((a, b) => a.id - b.id); }
+      })
+      renderTable(students);
+      break;
+    case 2:
+      thAll.forEach(th => {
+        let dir = th.dataset.sortDir || 'asc';
+        dir = dir === "asc" ? "desc" : "asc";
+        th.dataset.sortDir = dir;
+        if (dir == 'asc') { students.sort((a, b) => a.email.localeCompare(b.email)); } else
+          if (dir == 'desc') { students.sort((a, b) => b.email.localeCompare(a.email)); }
+      })
+      renderTable(students);
+      break;
+    default:
+      alert("handleSort dosen't handel this column name")
+  }
+
 }
 
 /**
@@ -246,6 +306,8 @@ async function loadStudentsAndInitialize() {
   passwordForm.addEventListener('submit', function (event) { handleChangePassword(event) });
   addStudentForm.addEventListener('submit', function (event) { handleAddStudent(event) });
   tbody.addEventListener('click', function (event) { handleTableClick(event) });
+  searchInput.addEventListener('input', function (event) { handleSearch(event) });
+  thAll.forEach(th => { th.addEventListener('click', function (event) { handleSort(event) }) });
 }
 
 // --- Initial Page Load ---

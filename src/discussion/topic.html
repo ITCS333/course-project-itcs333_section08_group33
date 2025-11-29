@@ -13,19 +13,20 @@
     <!-- TODO: Add a title, for now use "Topic Details". -->
  <title>Topic Details</title>
     <!-- TODO: Link to your CSS framework or stylesheet. -->
- <link rel="stylesheet" href="../common/styles.css" >   
+ <link rel="stylesheet" href="../common/styles.css" >  
+ <script src="topic.js" defer></script> 
 </head>
 <body>
     <!-- TODO: Create a 'header' with a main heading ('h1'). Use a dummy title like "Question about CSS Flexbox". -->
  <header>
-    <h1>Question about CSS Flexbox</h1>
+    <h1 id="topic-subject">Question about CSS Flexbox</h1>
  </header>
     <main><!-- TODO: Create the 'main' content area. -->
 
         <!-- Section 1: Original Post -->
         <article id="original-post"><!-- TODO: Use an 'article' to display the main topic post. Give it an 'id' like "original-post". -->
-             <p>dummy text</p> <!-- TODO: Add a paragraph ('p') with the dummy text of the original message. -->
-            <footer>Posted by: Student Name on YYYY-MM-DD</footer><!-- TODO: Use a 'footer' for the metadata: "Posted by: Student Name on YYYY-MM-DD". -->
+             <p id="op-message">dummy text</p> <!-- TODO: Add a paragraph ('p') with the dummy text of the original message. -->
+            <footer id="op-footer">Posted by: Student Name on YYYY-MM-DD</footer><!-- TODO: Use a 'footer' for the metadata: "Posted by: Student Name on YYYY-MM-DD". -->
             <!-- TODO: Add a container for "Edit" and "Delete" buttons, just like on the main page.
             Remember, these actions are restricted to the owner or admin. -->
             <div>
@@ -39,7 +40,7 @@
         <section id="replies-section"> <!-- TODO: Create a 'section' for the replies, with an 'id' of "replies-section". -->
             <!-- TODO: Add a sub-heading ('h2') "Replies". -->
          <h2>Replies</h2>
-          <div>    <!-- TODO: Add a container (like a 'div') for the list of replies. -->
+          <div id="reply-list-container">    <!-- TODO: Add a container (like a 'div') for the list of replies. -->
                 <!-- TODO: Add 1-2 dummy replies to show the structure. -->
 
                 <!-- Example Reply 1: -->
@@ -86,7 +87,7 @@
         <!-- Section 3: Add a Reply Form -->
         <section><!-- TODO: Create a 'section' for the reply form. -->
             <h2>Post a Reply</h2>  <!-- TODO: Add a sub-heading ('h2') "Post a Reply". -->
-            <form action="#"><!-- TODO: Create a 'form' for users to post new replies. Action can be '#'. -->
+            <form action="#" id="reply-form"><!-- TODO: Create a 'form' for users to post new replies. Action can be '#'. -->
                 <fieldset><!-- TODO: Use a 'fieldset' to group the controls. -->
                     <legend>Your Reply</legend><!-- TODO: Add a 'legend', e.g., "Your Reply". -->
 

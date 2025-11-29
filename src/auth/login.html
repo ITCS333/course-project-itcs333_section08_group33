@@ -17,12 +17,13 @@
          The 'name' should be 'viewport' and the 'content' should set the 'width' to 'device-width'
          and the 'initial-scale' to '1.0'. -->
 
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- TODO: Add a 'title' for the page. It should be "Login". -->
-<title>Login</title>
+ <title>Login</title>
 
     <!-- TODO: Link to a CSS file or a CSS framework like PicoCSS or Bootstrap to style the page. You can use a CDN link. -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+ <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+ <script src="login.js" defer></script>
 
 </head>
 <body> <!-- TODO: Add any styling to the 'body' tag to center the login form on the page. -->
@@ -39,7 +40,7 @@
 
             <!-- The form element will wrap all the inputs. -->
             <!-- TODO: Create a 'form' element. The 'action' can be '#' for now. -->
-            <form action="#">
+            <form action="#" id="login-form" novalidate>
                 <!-- TODO: Use a 'fieldset' to group all the related controls for the login form. -->
                 <fieldset>
                     <!-- TODO: Add a 'legend' to caption the fieldset. e.g., "Secure Login". This improves accessibility. -->
@@ -75,6 +76,7 @@
                     <button type="submit" id="login">Log In</button>
                 </fieldset><!-- End of the fieldset. -->
 
+                <div id="message-container"></div>
 
             </form><!-- End of the form element. -->
 

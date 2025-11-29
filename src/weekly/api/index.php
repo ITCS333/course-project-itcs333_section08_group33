@@ -205,6 +205,7 @@ function getWeekById($db, $weekId)
         $week['links'] = $week['links'] ? json_decode($week['links']) : [];
     } catch (PDOException $e) {
         error_log($e->getMessage());
+         sendError("get week by id database statement failed.", 404);
     }
 }
 
@@ -295,6 +296,7 @@ function createWeek($db, $data)
         }
     } catch (PDOException $e) {
         error_log($e->getMessage());
+        sendError("create week database statement failed.", 500);
     }
 }
 
@@ -406,6 +408,7 @@ function updateWeek($db, $data)
         }
     } catch (PDOException $e) {
         error_log($e->getMessage());
+        sendError("update week database statement failed.", 500);
     }
 }
 
@@ -474,8 +477,8 @@ function deleteWeek($db, $weekId)
         }
     } catch (PDOException $e) {
         $db->rollBack();
-        error_log("Database Error in deleteWeek: " . $e->getMessage());
-        sendError("Database error occurred during deletion.", 500);
+        error_log($e->getMessage());
+        sendError("delete week database statement failed.", 500);
     }
 }
 
@@ -516,8 +519,8 @@ function getCommentsByWeek($db, $weekId)
         // Even if no comments exist, return an empty array
         sendResponse(['success' => true, 'data' => $comments]);
     } catch (PDOException $e) {
-        error_log("Database Error in getCommentsByWeek: " . $e->getMessage());
-        sendError("Database error occurred while fetching comments.", 500);
+        error_log($e->getMessage());
+        sendError("get comment database statement failed..", 500);
     }
 }
 
@@ -590,6 +593,7 @@ function createComment($db, $data)
         }
     } catch (PDOException $e) {
         error_log($e->getMessage());
+        sendError("create comment database statement failed.", 500);
     }
 }
 
@@ -646,6 +650,7 @@ function deleteComment($db, $commentId)
         }
     } catch (PDOException $e) {
         error_log($e->getMessage());
+        sendError("delete comment database statement failed.", 500);
     }
 }
 
@@ -694,7 +699,7 @@ try {
             } else {
                 // TODO: Return error for unsupported methods
                 // Set HTTP status to 405 (Method Not Allowed)
-                sendError("Method Not Allowed for resource '{$resource}'", 405);
+                sendError("Method Not Allowed", 405);
             }
         }
 
@@ -715,7 +720,7 @@ try {
             } else {
                 // TODO: Return error for unsupported methods
                 // Set HTTP status to 405 (Method Not Allowed)
-                sendError("Method Not Allowed for resource '{$resource}'", 405);
+                sendError("Method Not Allowed", 405);
             }
         }
 
@@ -730,7 +735,7 @@ try {
         // TODO: Handle database errors
         // Log the error message (optional, for debugging)
         // error_log($e->getMessage());
-        error_log("FATAL PDO ERROR: " . $e->getMessage());
+        error_log("PDO ERROR: " . $e->getMessage());
         // TODO: Return generic error response with 500 status
         // Do NOT expose database error details to the client
         // Return message: "Database error occurred"  
@@ -740,7 +745,7 @@ try {
     // TODO: Handle general errors
     // Log the error message (optional)
     // Return error response with 500 status
-    error_log("FATAL GENERAL ERROR: " . $e->getMessage());
+    error_log("GENERAL ERROR: " . $e->getMessage());
     sendError("server error occurred.", 500);
 }
 

@@ -56,14 +56,39 @@
 // Allow specific HTTP methods (GET, POST, PUT, DELETE, OPTIONS)
 // Allow specific headers (Content-Type, Authorization)
 
+// Basic headers and CORS for development
+header('Content-Type: application/json; charset=utf-8');
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization');
+
 
 // TODO: Handle preflight OPTIONS request
 // If the request method is OPTIONS, return 200 status and exit
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit;
+}
 
 
 // TODO: Include the database connection class
 // Assume the Database class has a method getConnection() that returns a PDO instance
 // Example: require_once '../config/Database.php';
+
+// Try to use a PDO database connection if available, otherwise fall back to JSON files
+$db = null;
+$dbAvailable = false;
+if (file_exists(__DIR__ . '/../config/Database.php')) {
+    require_once __DIR__ . '/../config/Database.php';
+    try {
+        $database = new Database();
+        $db = $database->getConnection();
+        $dbAvailable = ($db instanceof PDO);
+    } catch (Throwable $e) {
+        $dbAvailable = false;
+    }
+}
 
 
 // TODO: Get the PDO database connection
@@ -74,14 +99,41 @@
 // TODO: Get the HTTP request method
 // Use $_SERVER['REQUEST_METHOD']
 
+$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+
 
 // TODO: Get the request body for POST and PUT requests
 // Use file_get_contents('php://input') to get raw POST data
 // Decode JSON data using json_decode() with associative array parameter
 
+$rawBody = file_get_contents('php://input');
+$jsonBody = json_decode($rawBody, true);
+
 
 // TODO: Parse query parameters
 // Get 'action', 'id', 'resource_id', 'comment_id' from $_GET
+
+$action = $_GET['action'] ?? null;
+$id = $_GET['id'] ?? null;
+$resource_id = $_GET['resource_id'] ?? null;
+$comment_id = $_GET['comment_id'] ?? null;
+
+// File-based storage paths
+$resourcesFile = __DIR__ . '/resources.json';
+$commentsFile = __DIR__ . '/comments.json';
+
+function readJsonFile($path) {
+    if (!file_exists($path)) return [];
+    $txt = file_get_contents($path);
+    $data = json_decode($txt, true);
+    return is_array($data) ? $data : [];
+}
+
+function writeJsonFile($path, $data) {
+    $tmp = $path . '.tmp';
+    file_put_contents($tmp, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+    rename($tmp, $path);
+}
 
 
 // ============================================================================
@@ -130,6 +182,51 @@ function getAllResources($db) {
     
     // TODO: Return JSON response with success status and data
     // Use the helper function sendResponse()
+    if ($db === null) {
+        $all = readJsonFile(__DIR__ . '/resources.json');
+
+        $search = $_GET['search'] ?? null;
+        $sort = $_GET['sort'] ?? 'created_at';
+        $order = strtolower($_GET['order'] ?? 'desc');
+        $allowedSort = ['title', 'created_at'];
+        if (!in_array($sort, $allowedSort, true)) $sort = 'created_at';
+        if ($order !== 'asc') $order = 'desc';
+
+        if ($search) {
+            $s = mb_strtolower($search);
+            $all = array_values(array_filter($all, function($r) use ($s) {
+                return (mb_stripos($r['title'] ?? '', $s) !== false) || (mb_stripos($r['description'] ?? '', $s) !== false);
+            }));
+        }
+
+        usort($all, function($a, $b) use ($sort, $order) {
+            $va = $a[$sort] ?? '';
+            $vb = $b[$sort] ?? '';
+            if ($va == $vb) return 0;
+            if ($order === 'asc') return ($va < $vb) ? -1 : 1;
+            return ($va > $vb) ? -1 : 1;
+        });
+
+        sendResponse(['success' => true, 'data' => $all]);
+    }
+
+    try {
+        $sql = 'SELECT id, title, description, link, created_at FROM resources';
+        $params = [];
+        $clauses = [];
+        if (!empty($_GET['search'])) { $clauses[] = '(title LIKE :search OR description LIKE :search)'; $params[':search'] = '%' . $_GET['search'] . '%'; }
+        if ($clauses) $sql .= ' WHERE ' . implode(' AND ', $clauses);
+        $sort = $_GET['sort'] ?? 'created_at';
+        $allowedSort = ['title', 'created_at']; if (!in_array($sort, $allowedSort, true)) $sort = 'created_at';
+        $order = strtolower($_GET['order'] ?? 'desc') === 'asc' ? 'ASC' : 'DESC';
+        $sql .= " ORDER BY {$sort} {$order}";
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        sendResponse(['success' => true, 'data' => $rows]);
+    } catch (Exception $e) {
+        sendResponse(['success' => false, 'message' => 'Failed to fetch resources'], 500);
+    }
 }
 
 
@@ -145,7 +242,7 @@ function getAllResources($db) {
  *   - data: Resource object or error message
  */
 function getResourceById($db, $resourceId) {
-    // TODO: Validate that resource ID is provided and is numeric
+     // TODO: Validate that resource ID is provided and is numeric
     // If not, return error response with 400 status
     
     // TODO: Prepare SQL query to select resource by id
@@ -160,6 +257,25 @@ function getResourceById($db, $resourceId) {
     // TODO: Check if resource exists
     // If yes, return success response with resource data
     // If no, return error response with 404 status
+    if (empty($resourceId)) {
+        sendResponse(['success' => false, 'message' => 'Resource ID is required'], 400);
+    }
+
+    if ($db === null) {
+        $all = readJsonFile(__DIR__ . '/resources.json');
+        foreach ($all as $r) { if ((string)($r['id'] ?? '') === (string)$resourceId) sendResponse(['success' => true, 'data' => $r]); }
+        sendResponse(['success' => false, 'message' => 'Resource not found'], 404);
+    }
+
+    try {
+        $stmt = $db->prepare('SELECT id, title, description, link, created_at FROM resources WHERE id = ?');
+        $stmt->execute([$resourceId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($row) sendResponse(['success' => true, 'data' => $row]);
+        sendResponse(['success' => false, 'message' => 'Resource not found'], 404);
+    } catch (Exception $e) {
+        sendResponse(['success' => false, 'message' => 'Failed to fetch resource'], 500);
+    }
 }
 
 
@@ -202,6 +318,31 @@ function createResource($db, $data) {
     // If yes, get the last inserted ID using $db->lastInsertId()
     // Return success response with 201 status and the new resource ID
     // If no, return error response with 500 status
+    $required = ['title', 'link'];
+    $check = validateRequiredFields($data, $required);
+    if (!$check['valid']) sendResponse(['success' => false, 'message' => 'Missing fields: ' . implode(', ', $check['missing'])], 400);
+
+    $title = sanitizeInput($data['title']);
+    $description = isset($data['description']) ? sanitizeInput($data['description']) : '';
+    $link = sanitizeInput($data['link']);
+    if (!validateUrl($link)) sendResponse(['success' => false, 'message' => 'Invalid URL for link'], 400);
+
+    if ($db === null) {
+        $all = readJsonFile(__DIR__ . '/resources.json');
+        $max = 0; foreach ($all as $r) { if (isset($r['id']) && is_numeric($r['id'])) $max = max($max, (int)$r['id']); }
+        $newId = $max + 1;
+        $new = ['id' => $newId, 'title' => $title, 'description' => $description, 'link' => $link, 'created_at' => date('c')];
+        $all[] = $new;
+        writeJsonFile(__DIR__ . '/resources.json', $all);
+        sendResponse(['success' => true, 'id' => $newId], 201);
+    }
+
+    try {
+        $stmt = $db->prepare('INSERT INTO resources (title, description, link) VALUES (?, ?, ?)');
+        $ok = $stmt->execute([$title, $description, $link]);
+        if ($ok) { $id = $db->lastInsertId(); sendResponse(['success' => true, 'id' => $id], 201); }
+        sendResponse(['success' => false, 'message' => 'Failed to create resource'], 500);
+    } catch (Exception $e) { sendResponse(['success' => false, 'message' => 'Failed to create resource'], 500); }
 }
 
 
@@ -251,6 +392,39 @@ function updateResource($db, $data) {
     // TODO: Check if update was successful
     // If yes, return success response with 200 status
     // If no, return error response with 500 status
+    if (empty($data['id'])) sendResponse(['success' => false, 'message' => 'Resource ID required'], 400);
+    $resourceId = $data['id'];
+    $fields = [];
+    $values = [];
+    if (isset($data['title'])) { $fields[] = 'title'; $values[] = sanitizeInput($data['title']); }
+    if (isset($data['description'])) { $fields[] = 'description'; $values[] = sanitizeInput($data['description']); }
+    if (isset($data['link'])) { if (!validateUrl($data['link'])) sendResponse(['success' => false, 'message' => 'Invalid URL'], 400); $fields[] = 'link'; $values[] = sanitizeInput($data['link']); }
+    if (empty($fields)) sendResponse(['success' => false, 'message' => 'No fields to update'], 400);
+
+    if ($db === null) {
+        $all = readJsonFile(__DIR__ . '/resources.json');
+        $found = false;
+        foreach ($all as &$r) {
+            if ((string)($r['id'] ?? '') === (string)$resourceId) {
+                $found = true;
+                foreach ($fields as $i => $f) { $r[$f] = $values[$i]; }
+                break;
+            }
+        }
+        if (!$found) sendResponse(['success' => false, 'message' => 'Resource not found'], 404);
+        writeJsonFile(__DIR__ . '/resources.json', $all);
+        sendResponse(['success' => true], 200);
+    }
+
+    try {
+        $set = implode(', ', array_map(function($f){ return "$f = ?"; }, $fields));
+        $sql = "UPDATE resources SET {$set} WHERE id = ?";
+        $stmt = $db->prepare($sql);
+        $values[] = $resourceId;
+        $ok = $stmt->execute($values);
+        if ($ok) sendResponse(['success' => true], 200);
+        sendResponse(['success' => false, 'message' => 'Update failed'], 500);
+    } catch (Exception $e) { sendResponse(['success' => false, 'message' => 'Update failed'], 500); }
 }
 
 
@@ -268,7 +442,7 @@ function updateResource($db, $data) {
  * Note: This should also delete all associated comments
  */
 function deleteResource($db, $resourceId) {
-    // TODO: Validate that resource ID is provided and is numeric
+     // TODO: Validate that resource ID is provided and is numeric
     // If not, return error response with 400 status
     
     // TODO: Check if resource exists
@@ -277,9 +451,21 @@ function deleteResource($db, $resourceId) {
     
     // TODO: Begin a transaction (for data integrity)
     // Use $db->beginTransaction()
-    
+    if (empty($resourceId)) sendResponse(['success' => false, 'message' => 'Resource ID required'], 400);
+    if ($db === null) {
+        $all = readJsonFile(__DIR__ . '/resources.json');
+        $found = false;
+        foreach ($all as $i => $r) { if ((string)($r['id'] ?? '') === (string)$resourceId) { $found = true; unset($all[$i]); break; } }
+        if (!$found) sendResponse(['success' => false, 'message' => 'Resource not found'], 404);
+        $comments = readJsonFile(__DIR__ . '/comments.json');
+        $comments = array_values(array_filter($comments, function($c) use ($resourceId) { return (string)($c['resource_id'] ?? '') !== (string)$resourceId; }));
+        writeJsonFile(__DIR__ . '/resources.json', array_values($all));
+        writeJsonFile(__DIR__ . '/comments.json', $comments);
+        sendResponse(['success' => true], 200);
+    }
+
     try {
-        // TODO: First, delete all associated comments
+         // TODO: First, delete all associated comments
         // Prepare DELETE query for comments table
         // DELETE FROM comments WHERE resource_id = ?
         
@@ -295,12 +481,21 @@ function deleteResource($db, $resourceId) {
         // Use $db->commit()
         
         // TODO: Return success response with 200 status
-        
-    } catch (Exception $e) {
+        $db->beginTransaction();
+        $stmt = $db->prepare('DELETE FROM comments WHERE resource_id = ?');
+        $stmt->execute([$resourceId]);
+        $stmt = $db->prepare('DELETE FROM resources WHERE id = ?');
+        $stmt->execute([$resourceId]);
+        $db->commit();
+        sendResponse(['success' => true], 200);
+    } catch (Exception $e) { 
         // TODO: Rollback the transaction on error
         // Use $db->rollBack()
         
         // TODO: Return error response with 500 status
+
+        if ($db) $db->rollBack(); 
+        sendResponse(['success' => false, 'message' => 'Delete failed'], 500); 
     }
 }
 
@@ -338,6 +533,19 @@ function getCommentsByResourceId($db, $resourceId) {
     
     // TODO: Return success response with comments data
     // Even if no comments exist, return empty array (not an error)
+    if (empty($resourceId)) sendResponse(['success' => false, 'message' => 'resource_id required'], 400);
+    if ($db === null) {
+        $comments = readJsonFile(__DIR__ . '/comments.json');
+        $res = array_values(array_filter($comments, function($c) use ($resourceId) { return (string)($c['resource_id'] ?? '') === (string)$resourceId; }));
+        sendResponse(['success' => true, 'data' => $res]);
+    }
+
+    try {
+        $stmt = $db->prepare('SELECT id, resource_id, author, text, created_at FROM comments WHERE resource_id = ? ORDER BY created_at ASC');
+        $stmt->execute([$resourceId]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        sendResponse(['success' => true, 'data' => $rows]);
+    } catch (Exception $e) { sendResponse(['success' => false, 'message' => 'Failed to fetch comments'], 500); }
 }
 
 
@@ -382,6 +590,29 @@ function createComment($db, $data) {
     // If yes, get the last inserted ID using $db->lastInsertId()
     // Return success response with 201 status and the new comment ID
     // If no, return error response with 500 status
+    $required = ['resource_id', 'author', 'text'];
+    $check = validateRequiredFields($data, $required);
+    if (!$check['valid']) sendResponse(['success' => false, 'message' => 'Missing fields: ' . implode(', ', $check['missing'])], 400);
+    $resourceId = $data['resource_id'];
+    $author = sanitizeInput($data['author']);
+    $text = sanitizeInput($data['text']);
+    if ($db === null) {
+        $all = readJsonFile(__DIR__ . '/resources.json');
+        $found = false; foreach ($all as $r) { if ((string)($r['id'] ?? '') === (string)$resourceId) { $found = true; break; } }
+        if (!$found) sendResponse(['success' => false, 'message' => 'Resource not found'], 404);
+        $comments = readJsonFile(__DIR__ . '/comments.json');
+        $max = 0; foreach ($comments as $c) { if (isset($c['id']) && is_numeric($c['id'])) $max = max($max, (int)$c['id']); }
+        $newId = $max + 1;
+        $new = ['id' => $newId, 'resource_id' => $resourceId, 'author' => $author, 'text' => $text, 'created_at' => date('c')];
+        $comments[] = $new; writeJsonFile(__DIR__ . '/comments.json', $comments);
+        sendResponse(['success' => true, 'id' => $newId], 201);
+    }
+
+    try {
+        $stmt = $db->prepare('SELECT id FROM resources WHERE id = ?'); $stmt->execute([$resourceId]); if (!$stmt->fetch()) sendResponse(['success' => false, 'message' => 'Resource not found'], 404);
+        $stmt = $db->prepare('INSERT INTO comments (resource_id, author, text) VALUES (?, ?, ?)'); $ok = $stmt->execute([$resourceId, $author, $text]); if ($ok) { $id = $db->lastInsertId(); sendResponse(['success' => true, 'id' => $id], 201); }
+        sendResponse(['success' => false, 'message' => 'Failed to create comment'], 500);
+    } catch (Exception $e) { sendResponse(['success' => false, 'message' => 'Failed to create comment'], 500); }
 }
 
 
@@ -397,7 +628,7 @@ function createComment($db, $data) {
  *   - message: Success or error message
  */
 function deleteComment($db, $commentId) {
-    // TODO: Validate that comment_id is provided and is numeric
+     // TODO: Validate that comment_id is provided and is numeric
     // If not, return error response with 400 status
     
     // TODO: Check if comment exists
@@ -414,6 +645,15 @@ function deleteComment($db, $commentId) {
     // TODO: Check if delete was successful
     // If yes, return success response with 200 status
     // If no, return error response with 500 status
+    if (empty($commentId)) sendResponse(['success' => false, 'message' => 'comment_id required'], 400);
+    if ($db === null) {
+        $comments = readJsonFile(__DIR__ . '/comments.json');
+        $found = false; foreach ($comments as $i => $c) { if ((string)($c['id'] ?? '') === (string)$commentId) { $found = true; unset($comments[$i]); break; } }
+        if (!$found) sendResponse(['success' => false, 'message' => 'Comment not found'], 404);
+        writeJsonFile(__DIR__ . '/comments.json', array_values($comments)); sendResponse(['success' => true], 200);
+    }
+
+    try { $stmt = $db->prepare('DELETE FROM comments WHERE id = ?'); $ok = $stmt->execute([$commentId]); if ($ok) sendResponse(['success' => true], 200); sendResponse(['success' => false, 'message' => 'Delete failed'], 500); } catch (Exception $e) { sendResponse(['success' => false, 'message' => 'Delete failed'], 500); }
 }
 
 
@@ -423,7 +663,6 @@ function deleteComment($db, $commentId) {
 
 try {
     // TODO: Route the request based on HTTP method and action parameter
-    
     if ($method === 'GET') {
         // TODO: Check the action parameter to determine which function to call
         
@@ -439,6 +678,9 @@ try {
         // Otherwise, get all resources
         // TODO: Call getAllResources()
         
+        if ($action === 'comments') { getCommentsByResourceId($db, $resource_id); }
+        if (!empty($id)) { getResourceById($db, $id); }
+        getAllResources($db);
     } elseif ($method === 'POST') {
         // TODO: Check the action parameter to determine which function to call
         
@@ -448,11 +690,14 @@ try {
         
         // Otherwise, create a new resource
         // TODO: Call createResource()
-        
+        if ($action === 'comment') { createComment($db, $jsonBody ?? $_POST); }
+        else { createResource($db, $jsonBody ?? $_POST); }
     } elseif ($method === 'PUT') {
         // TODO: Update a resource
         // Call updateResource()
         
+        $data = $jsonBody ?? [];
+        updateResource($db, $data);
     } elseif ($method === 'DELETE') {
         // TODO: Check the action parameter to determine which function to call
         
@@ -464,23 +709,30 @@ try {
         // Otherwise, delete a resource
         // TODO: Get resource id from query parameter or request body
         // Call deleteResource()
-        
+        if ($action === 'delete_comment') {
+            $cid = $comment_id ?? ($jsonBody['comment_id'] ?? null); 
+            deleteComment($db, $cid); }
+        else { $rid = $id ?? ($jsonBody['id'] ?? null) ?? ($jsonBody['resource_id'] ?? null); deleteResource($db, $rid); }
     } else {
         // TODO: Return error for unsupported methods
         // Set HTTP status to 405 (Method Not Allowed)
         // Return JSON error message using sendResponse()
-    }
+         sendResponse(['success' => false, 'message' => 'Method not allowed'], 405); 
+         }
     
 } catch (PDOException $e) {
     // TODO: Handle database errors
     // Log the error message (optional, use error_log())
     // Return generic error response with 500 status
     // Do NOT expose detailed error messages to the client in production
-    
+    error_log("Database Error: " . $e->getMessage());
+    http_response_code(500);
+    echo json_encode(["error" => "A server error occurred while processing the request."]);
 } catch (Exception $e) {
     // TODO: Handle general errors
     // Log the error message (optional)
     // Return error response with 500 status
+    sendResponse(['success' => false, 'message' => 'Server error'], 500);
 }
 
 
@@ -504,6 +756,9 @@ function sendResponse($data, $statusCode = 200) {
     // Use JSON_PRETTY_PRINT for readability (optional)
     
     // TODO: Exit to prevent further execution
+    http_response_code($statusCode);
+    if (!is_array($data)) $data = ['data' => $data];
+    echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     exit;
 }
 
@@ -517,6 +772,7 @@ function sendResponse($data, $statusCode = 200) {
 function validateUrl($url) {
     // TODO: Use filter_var with FILTER_VALIDATE_URL
     // Return true if valid, false otherwise
+    return filter_var($url, FILTER_VALIDATE_URL) !== false;
 }
 
 
@@ -535,6 +791,9 @@ function sanitizeInput($data) {
     // Use ENT_QUOTES to escape both double and single quotes
     
     // TODO: Return sanitized data
+    $s = trim($data);
+    $s = strip_tags($s);
+    return htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
 }
 
 
@@ -546,7 +805,7 @@ function sanitizeInput($data) {
  * @return array - Array with 'valid' (bool) and 'missing' (array of missing fields)
  */
 function validateRequiredFields($data, $requiredFields) {
-    // TODO: Initialize empty array for missing fields
+     // TODO: Initialize empty array for missing fields
     
     // TODO: Loop through required fields
     // Check if each field exists in data and is not empty
@@ -554,6 +813,9 @@ function validateRequiredFields($data, $requiredFields) {
     
     // TODO: Return result array
     // ['valid' => (count($missing) === 0), 'missing' => $missing]
+    $missing = [];
+    foreach ($requiredFields as $f) { if (!isset($data[$f]) || $data[$f] === '' || $data[$f] === null) $missing[] = $f; }
+    return ['valid' => count($missing) === 0, 'missing' => $missing];
 }
 
 ?>

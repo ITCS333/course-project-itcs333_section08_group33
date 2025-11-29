@@ -49,29 +49,62 @@
 // Allow specific HTTP methods (GET, POST, PUT, DELETE, OPTIONS)
 // Allow specific headers (Content-Type, Authorization)
 
+header('Content-Type: application/json; charset=utf-8');
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
 // TODO: Handle preflight OPTIONS request
 // If the request method is OPTIONS, return 200 status and exit
 
+if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit;
+}
 
 // TODO: Include the database connection class
 // Assume the Database class has a method getConnection() that returns a PDO instance
+// The function is defined elsewhere (e.g., in a config file or db.php)
 
+// try to include a shared DB helper (adjust path based on your project structure)
+if (file_exists(__DIR__ . '/../../db.php')) {
+    require_once __DIR__ . '/../../db.php';
+}
 
 // TODO: Get the PDO database connection
 // $db = $database->getConnection();
 
+// ensure Database class exists; if not, return an error
+if (!class_exists('Database')) {
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Database configuration not found.'
+    ]);
+    exit;
+}
+
+$database = new Database();
+$db = $database->getConnection();
 
 // TODO: Get the HTTP request method
 // Use $_SERVER['REQUEST_METHOD']
 
+$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
 // TODO: Get the request body for POST and PUT requests
 // Use file_get_contents('php://input') to get raw POST data
 // Decode JSON data using json_decode()
 
+$rawInput = file_get_contents('php://input');
+$dataJson = json_decode($rawInput);
 
 // TODO: Parse query parameters for filtering and searching
+
+$resource = $_GET['resource'] ?? 'topics';
+$queryId = $_GET['id'] ?? null;
+$topicIdParam = $_GET['topic_id'] ?? null;
+$searchParam = $_GET['search'] ?? null;
 
 
 // ============================================================================
@@ -114,6 +147,37 @@ function getAllTopics($db) {
     
     // TODO: Return JSON response with success status and data
     // Call sendResponse() helper function or echo json_encode directly
+
+    $search = $_GET['search'] ?? null;
+    $sort = $_GET['sort'] ?? 'created_at';
+    $order = $_GET['order'] ?? 'desc';
+    $allowedSort = ['subject', 'author', 'created_at'];
+
+    $sql = "SELECT topic_id, subject, message, author, created_at FROM topics";
+    $params = [];
+    if ($search) {
+        $sql .= " WHERE subject LIKE :s OR message LIKE :s OR author LIKE :s";
+        $params[':s'] = "%{$search}%";
+    }
+
+    if (!in_array($sort, $allowedSort)) {
+        $sort = 'created_at';
+    }
+    $order = strtolower($order) === 'asc' ? 'ASC' : 'DESC';
+    $sql .= " ORDER BY {$sort} {$order}";
+
+    try {
+        $stmt = $db->prepare($sql);
+        if ($search) {
+            $stmt->bindValue(':s', $params[':s'], PDO::PARAM_STR);
+        }
+        $stmt->execute();
+        $topics = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        sendResponse(['success' => true, 'data' => $topics]);
+    } catch (PDOException $e) {
+        error_log('getAllTopics error: ' . $e->getMessage());
+        sendResponse(['success' => false, 'message' => 'Database error occurred.'], 500);
+    }
 }
 
 
@@ -140,6 +204,25 @@ function getTopicById($db, $topicId) {
     // TODO: Check if topic exists
     // If topic found, return success response with topic data
     // If not found, return error with 404 status
+
+    $topicId = trim($topicId);
+    if (empty($topicId)) {
+        sendResponse(['success' => false, 'message' => 'Topic ID is required.'], 400);
+    }
+    $sql = "SELECT topic_id, subject, message, author, created_at FROM topics WHERE topic_id = ? LIMIT 1";
+    try {
+        $stmt = $db->prepare($sql);
+        $stmt->bindParam(1, $topicId, PDO::PARAM_STR);
+        $stmt->execute();
+        $topic = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$topic) {
+            sendResponse(['success' => false, 'message' => 'Topic not found.'], 404);
+        }
+        sendResponse(['success' => true, 'data' => $topic]);
+    } catch (PDOException $e) {
+        error_log('getTopicById error: ' . $e->getMessage());
+        sendResponse(['success' => false, 'message' => 'Database error occurred.'], 500);
+    }
 }
 
 
@@ -179,6 +262,44 @@ function createTopic($db, $data) {
     // If yes, return success response with 201 status (Created)
     // Include the topic_id in the response
     // If no, return error with 500 status
+
+    // Validate required fields
+    if (empty($data->topic_id) || empty($data->subject) || empty($data->message) || empty($data->author)) {
+        sendResponse(['success' => false, 'message' => 'Missing required fields: topic_id, subject, message, author.'], 400);
+    }
+
+    // Sanitize inputs
+    $topic_id = sanitizeInput($data->topic_id);
+    $subject = sanitizeInput($data->subject);
+    $message = sanitizeInput($data->message);
+    $author = sanitizeInput($data->author);
+
+    try {
+        // Check duplicate
+        $checkSql = "SELECT topic_id FROM topics WHERE topic_id = ? LIMIT 1";
+        $check = $db->prepare($checkSql);
+        $check->bindParam(1, $topic_id, PDO::PARAM_STR);
+        $check->execute();
+        if ($check->rowCount() > 0) {
+            sendResponse(['success' => false, 'message' => 'Topic ID already exists.'], 409);
+        }
+
+        // Insert topic
+        $insertSql = "INSERT INTO topics (topic_id, subject, message, author) VALUES (?, ?, ?, ?)";
+        $stmt = $db->prepare($insertSql);
+        $stmt->bindParam(1, $topic_id, PDO::PARAM_STR);
+        $stmt->bindParam(2, $subject, PDO::PARAM_STR);
+        $stmt->bindParam(3, $message, PDO::PARAM_STR);
+        $stmt->bindParam(4, $author, PDO::PARAM_STR);
+        if ($stmt->execute()) {
+            sendResponse(['success' => true, 'topic_id' => $topic_id], 201);
+        } else {
+            sendResponse(['success' => false, 'message' => 'Failed to create topic.'], 500);
+        }
+    } catch (PDOException $e) {
+        error_log('createTopic error: ' . $e->getMessage());
+        sendResponse(['success' => false, 'message' => 'Database error occurred.'], 500);
+    }
 }
 
 
@@ -216,6 +337,54 @@ function updateTopic($db, $data) {
     // If yes, return success response
     // If no rows affected, return appropriate message
     // If error, return error with 500 status
+
+    if (empty($data->topic_id)) {
+        sendResponse(['success' => false, 'message' => 'Topic ID is required for update.'], 400);
+    }
+    $topic_id = trim($data->topic_id);
+    // check exists
+    try {
+        $check = $db->prepare("SELECT topic_id FROM topics WHERE topic_id = ? LIMIT 1");
+        $check->bindParam(1, $topic_id, PDO::PARAM_STR);
+        $check->execute();
+        if ($check->rowCount() === 0) {
+            sendResponse(['success' => false, 'message' => 'Topic not found.'], 404);
+        }
+
+        $updates = [];
+        $params = [];
+        if (isset($data->subject)) {
+            $updates[] = 'subject = ?';
+            $params[] = sanitizeInput($data->subject);
+        }
+        if (isset($data->message)) {
+            $updates[] = 'message = ?';
+            $params[] = sanitizeInput($data->message);
+        }
+        if (isset($data->author)) {
+            $updates[] = 'author = ?';
+            $params[] = sanitizeInput($data->author);
+        }
+
+        if (empty($updates)) {
+            sendResponse(['success' => false, 'message' => 'No fields provided for update.'], 400);
+        }
+
+        $sql = 'UPDATE topics SET ' . implode(', ', $updates) . ' WHERE topic_id = ?';
+        $params[] = $topic_id;
+        $stmt = $db->prepare($sql);
+        foreach ($params as $i => $val) {
+            $stmt->bindValue($i + 1, $val, PDO::PARAM_STR);
+        }
+        if ($stmt->execute()) {
+            sendResponse(['success' => true, 'message' => 'Topic updated successfully.']);
+        } else {
+            sendResponse(['success' => false, 'message' => 'Failed to update topic.'], 500);
+        }
+    } catch (PDOException $e) {
+        error_log('updateTopic error: ' . $e->getMessage());
+        sendResponse(['success' => false, 'message' => 'Database error occurred.'], 500);
+    }
 }
 
 
@@ -244,6 +413,43 @@ function deleteTopic($db, $topicId) {
     // TODO: Check if delete was successful
     // If yes, return success response
     // If no, return error with 500 status
+    
+    $topicId = trim($topicId);
+    if (empty($topicId)) {
+        sendResponse(['success' => false, 'message' => 'Topic ID is required for deletion.'], 400);
+    }
+    try {
+        // check exists
+        $check = $db->prepare('SELECT topic_id FROM topics WHERE topic_id = ? LIMIT 1');
+        $check->bindParam(1, $topicId, PDO::PARAM_STR);
+        $check->execute();
+        if ($check->rowCount() === 0) {
+            sendResponse(['success' => false, 'message' => 'Topic not found.'], 404);
+        }
+
+        $db->beginTransaction();
+        $delReplies = $db->prepare('DELETE FROM replies WHERE topic_id = ?');
+        $delReplies->bindParam(1, $topicId, PDO::PARAM_STR);
+        $delReplies->execute();
+        $repliesDeleted = $delReplies->rowCount();
+
+        $delTopic = $db->prepare('DELETE FROM topics WHERE topic_id = ?');
+        $delTopic->bindParam(1, $topicId, PDO::PARAM_STR);
+        $delTopic->execute();
+        if ($delTopic->rowCount() > 0) {
+            $db->commit();
+            sendResponse(['success' => true, 'message' => "Topic '{$topicId}' and {$repliesDeleted} replies deleted."]);
+        } else {
+            $db->rollBack();
+            sendResponse(['success' => false, 'message' => 'Failed to delete topic.'], 500);
+        }
+    } catch (PDOException $e) {
+        if ($db && $db->inTransaction()) {
+            $db->rollBack();
+        }
+        error_log('deleteTopic error: ' . $e->getMessage());
+        sendResponse(['success' => false, 'message' => 'Database error occurred.'], 500);
+    }
 }
 
 
@@ -274,6 +480,22 @@ function getRepliesByTopicId($db, $topicId) {
     
     // TODO: Return JSON response
     // Even if no replies found, return empty array (not an error)
+
+    $topicId = trim($topicId);
+    if (empty($topicId)) {
+        sendResponse(['success' => false, 'message' => 'Topic ID is required.'], 400);
+    }
+    $sql = "SELECT reply_id, topic_id, text, author, created_at FROM replies WHERE topic_id = ? ORDER BY created_at ASC";
+    try {
+        $stmt = $db->prepare($sql);
+        $stmt->bindParam(1, $topicId, PDO::PARAM_STR);
+        $stmt->execute();
+        $replies = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        sendResponse(['success' => true, 'data' => $replies]);
+    } catch (PDOException $e) {
+        error_log('getRepliesByTopicId error: ' . $e->getMessage());
+        sendResponse(['success' => false, 'message' => 'Database error occurred.'], 500);
+    }
 }
 
 
@@ -314,6 +536,46 @@ function createReply($db, $data) {
     // If yes, return success response with 201 status
     // Include the reply_id in the response
     // If no, return error with 500 status
+
+    if (empty($data->reply_id) || empty($data->topic_id) || empty($data->text) || empty($data->author)) {
+        sendResponse(['success' => false, 'message' => 'Missing required fields.'], 400);
+    }
+    $reply_id = sanitizeInput($data->reply_id);
+    $topic_id = sanitizeInput($data->topic_id);
+    $text = sanitizeInput($data->text);
+    $author = sanitizeInput($data->author);
+
+    try {
+        // verify topic exists
+        $checkTopic = $db->prepare('SELECT topic_id FROM topics WHERE topic_id = ? LIMIT 1');
+        $checkTopic->bindParam(1, $topic_id, PDO::PARAM_STR);
+        $checkTopic->execute();
+        if ($checkTopic->rowCount() === 0) {
+            sendResponse(['success' => false, 'message' => 'Parent topic not found.'], 404);
+        }
+
+        // check duplicate reply id
+        $checkReply = $db->prepare('SELECT reply_id FROM replies WHERE reply_id = ? LIMIT 1');
+        $checkReply->bindParam(1, $reply_id, PDO::PARAM_STR);
+        $checkReply->execute();
+        if ($checkReply->rowCount() > 0) {
+            sendResponse(['success' => false, 'message' => 'Reply ID already exists.'], 409);
+        }
+
+        $insert = $db->prepare('INSERT INTO replies (reply_id, topic_id, text, author) VALUES (?, ?, ?, ?)');
+        $insert->bindParam(1, $reply_id, PDO::PARAM_STR);
+        $insert->bindParam(2, $topic_id, PDO::PARAM_STR);
+        $insert->bindParam(3, $text, PDO::PARAM_STR);
+        $insert->bindParam(4, $author, PDO::PARAM_STR);
+        if ($insert->execute()) {
+            sendResponse(['success' => true, 'reply_id' => $reply_id], 201);
+        } else {
+            sendResponse(['success' => false, 'message' => 'Failed to create reply.'], 500);
+        }
+    } catch (PDOException $e) {
+        error_log('createReply error: ' . $e->getMessage());
+        sendResponse(['success' => false, 'message' => 'Database error occurred.'], 500);
+    }
 }
 
 
@@ -339,6 +601,30 @@ function deleteReply($db, $replyId) {
     // TODO: Check if delete was successful
     // If yes, return success response
     // If no, return error with 500 status
+
+    $rid = trim($replyId ?? ($_GET['id'] ?? ''));
+    if (empty($rid)) {
+        sendResponse(['success' => false, 'message' => 'Reply ID is required for deletion.'], 400);
+    }
+    try {
+        $check = $db->prepare('SELECT reply_id FROM replies WHERE reply_id = ? LIMIT 1');
+        $check->bindParam(1, $rid, PDO::PARAM_STR);
+        $check->execute();
+        if ($check->rowCount() === 0) {
+            sendResponse(['success' => false, 'message' => 'Reply not found.'], 404);
+        }
+        $del = $db->prepare('DELETE FROM replies WHERE reply_id = ?');
+        $del->bindParam(1, $rid, PDO::PARAM_STR);
+        $del->execute();
+        if ($del->rowCount() > 0) {
+            sendResponse(['success' => true, 'message' => "Reply '{$rid}' deleted."]);
+        } else {
+            sendResponse(['success' => false, 'message' => 'Failed to delete reply.'], 500);
+        }
+    } catch (PDOException $e) {
+        error_log('deleteReply error: ' . $e->getMessage());
+        sendResponse(['success' => false, 'message' => 'Database error occurred.'], 500);
+    }
 }
 
 
@@ -356,17 +642,59 @@ try {
     // TODO: For unsupported methods, return 405 Method Not Allowed
     
     // TODO: For invalid resources, return 400 Bad Request
-    
+    // Determine resource and method
+    $resource = $_GET['resource'] ?? 'topics';
+    $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+
+    if ($resource === 'topics') {
+        if ($method === 'GET') {
+            $id = $_GET['id'] ?? null;
+            if ($id) {
+                getTopicById($db, $id);
+            } else {
+                getAllTopics($db);
+            }
+        } elseif ($method === 'POST') {
+            createTopic($db, $dataJson);
+        } elseif ($method === 'PUT') {
+            updateTopic($db, $dataJson);
+        } elseif ($method === 'DELETE') {
+            $id = $_GET['id'] ?? ($dataJson->topic_id ?? null);
+            deleteTopic($db, $id);
+        } else {
+            sendResponse(['success' => false, 'message' => 'Method Not Allowed'], 405);
+        }
+    } elseif ($resource === 'replies') {
+        if ($method === 'GET') {
+            $tid = $_GET['topic_id'] ?? null;
+            getRepliesByTopicId($db, $tid);
+        } elseif ($method === 'POST') {
+            createReply($db, $dataJson);
+        } elseif ($method === 'DELETE') {
+            $rid = $_GET['id'] ?? ($dataJson->reply_id ?? null);
+            deleteReply($db, $rid);
+        } else {
+            sendResponse(['success' => false, 'message' => 'Method Not Allowed'], 405);
+        }
+    } else {
+        sendResponse(['success' => false, 'message' => "Invalid resource. Use 'topics' or 'replies'."], 400);
+    }
 } catch (PDOException $e) {
     // TODO: Handle database errors
     // DO NOT expose the actual error message to the client (security risk)
     // Log the error for debugging (optional)
     // Return generic error response with 500 status
-    
+
+    error_log('Discussion API DB error: ' . $e->getMessage());
+    sendResponse(['success' => false, 'message' => 'Database error occurred.'], 500);
+
 } catch (Exception $e) {
     // TODO: Handle general errors
     // Log the error for debugging
     // Return error response with 500 status
+
+    error_log('Discussion API error: ' . $e->getMessage());
+    sendResponse(['success' => false, 'message' => 'An internal server error occurred.'], 500);
 }
 
 
@@ -387,6 +715,17 @@ function sendResponse($data, $statusCode = 200) {
     // Make sure to handle JSON encoding errors
     
     // TODO: Exit to prevent further execution
+
+    http_response_code($statusCode);
+    $json = json_encode($data);
+    if ($json === false) {
+        $fallback = ['success' => false, 'message' => 'Failed to encode response as JSON'];
+        http_response_code(500);
+        echo json_encode($fallback);
+        exit;
+    }
+    echo $json;
+    exit;
 }
 
 
@@ -407,6 +746,14 @@ function sanitizeInput($data) {
     // TODO: Convert special characters to HTML entities (prevents XSS)
     
     // TODO: Return sanitized data
+
+    if (!is_string($data)) {
+        $data = (string)$data;
+    }
+    $data = trim($data);
+    $data = strip_tags($data);
+    $data = htmlspecialchars($data, ENT_QUOTES, 'UTF-8');
+    return $data;
 }
 
 
@@ -420,6 +767,9 @@ function isValidResource($resource) {
     // TODO: Define allowed resources
     
     // TODO: Check if resource is in the allowed list
+
+    $allowed = ['topics', 'replies'];
+    return in_array($resource, $allowed, true);
 }
 
 ?>

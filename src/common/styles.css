@@ -339,7 +339,9 @@ td:last-child {
 –––––––––––––––––––––––––––––––––––––––––––––––––– */
 button,
 .button {
-  margin-bottom: 1rem; }
+  margin-bottom: 1rem;
+  margin-right: 5px;
+}
 input,
 textarea,
 select,
@@ -490,12 +492,116 @@ table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 1rem;
+    margin-left: 15px;
 }
 tbody tr:hover {
-    background-color: rgb(174, 183, 190);
+    background-color: rgb(221, 225, 227);
 }
 
-#original-post div button
+th
 {
-  
+  text-align: center;
+}
+
+td
+{
+  text-align: center;
+}
+
+textarea{
+  width: 80%;
+  margin-right: 90px;
+}
+
+#student-table thead tr th:hover{
+  background-color: #69d5f6;
+}
+h1
+{
+ background: linear-gradient(0deg,rgb(242, 244, 244) 0%, rgb(250, 255, 255) 18%, rgb(255, 255, 255) 94%);
+  position: relative;
+  padding-bottom: 20px;
+  text-align: center;
+  font-weight: 600;
+  padding: 10px;
+}
+h2
+{
+  background: linear-gradient(0deg,rgb(239, 239, 239) 0%, rgb(255, 255, 255) 18%, rgb(255, 255, 255) 94%);
+  position: relative;
+  margin-top: 20px;
+  margin-bottom: 20px;
+  padding: 20px;
+}
+h3
+{
+  position: relative;
+  margin-top: 20px;
+  margin-bottom: 20px;
+  padding: 20px;
+}
+body
+{
+  margin: 0px;
+}
+#search-input
+{
+  margin-left: 40px;
+}
+label
+{
+  padding: 2px;
+  margin-left: 5px;
+}
+label[for="search-input"] {
+    display: inline-block;
+    margin-right: 8px;
+}
+#search-input
+{
+  margin-left: 20px;
+}
+summary
+{
+  margin: 1px;
+}
+summary:hover
+{
+  margin: 0px;
+  border: 1px solid rgb(225, 225, 225)
+}
+article h2
+{
+  background: rgb(243, 243, 243);
+  border-radius: 7px;
+}
+p
+{
+  padding-left: 30px ;
+}
+ul
+{
+  padding-left: 30px ;
+}
+
+#comment-list article, #reply-list-container article, #original-post
+{
+  border:2px rgb(238, 238, 238) solid;
+  background-color: #ffffff;
+  border-radius: 10px;
+  margin-left: 15px;
+  margin-right: 15px;
+  margin-top: 10px;
+}
+
+article p
+{
+  border: 1px dashed rgb(188, 185, 185);
+  padding-bottom: 10px;
+  border-radius: 10px;
+  padding-top: 10px;
+}
+article footer
+{
+  color:#888
 }

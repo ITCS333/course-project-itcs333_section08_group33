@@ -17,9 +17,9 @@ let topics = [];
 
 // --- Element Selections ---
 // TODO: Select the new topic form ('#new-topic-form').
-const newTopicForm = document.getElementById('new-topic-form');
+let newTopic = document.querySelector('#new-topic-form');
 // TODO: Select the topic list container ('#topic-list-container').
-const topicListContainer = document.getElementById('topic-list-container');
+let topicList = document.querySelector('#topic-list-container');
 // --- Functions ---
 
 /**
@@ -33,38 +33,33 @@ const topicListContainer = document.getElementById('topic-list-container');
  */
 function createTopicArticle(topic) {
   // ... your implementation here ...
-  const { id, subject, author, date } = topic;
-  const article = document.createElement('article');
-  const link = document.createElement('a');
-  const header = document.createElement('h3');
-  link.href = `topic.html?id=${id}`;
-  link.textContent=subject;
-  header.appendChild(link);
+  let article = document.createElement('article');
+  let h3 = document.createElement('h3');
+  let a = document.createElement('a');
+  a.href = `topic.html?id=${topic.id}`;
+  a.textContent = topic.subject;
+  h3.appendChild(a);
 
-  const footer = document.createElement('footer');
-  footer.textContent= `Posted by: ${author} on ${date}`;
+  let footer = document.createElement('footer');
+  footer.textContent = `Posted by: ${topic.author} on ${topic.date}`;
 
-  const actionDiv = document.createElement('div');
+  let actionsDiv = document.createElement('div');
+  let editBtn = document.createElement('button');
+  editBtn.type = 'button';
+  editBtn.textContent = 'Edit';
+  let deleteBtn = document.createElement('button');
+  deleteBtn.type = 'button';
+  deleteBtn.textContent = 'Delete';
+  deleteBtn.className = 'delete-btn';
+  deleteBtn.setAttribute('data-id', topic.id);
 
-  const buttonEdit = document.createElement('button');
-  buttonEdit.type= 'button';
-  buttonEdit.textContent= 'Edit';
-  
-  const buttonDelete = document.createElement('button');
-  buttonDelete.textContent='Delete';
-  buttonDelete.type='button';
-  buttonDelete.classList.add('delete-btn');
-  buttonDelete.dataset.id=id;
-
-
-  actionDiv.appendChild(buttonEdit);
-  actionDiv.appendChild(buttonDelete);
-  article.appendChild(header);
+  actionsDiv.appendChild(editBtn);
+  actionsDiv.appendChild(deleteBtn);
+  article.appendChild(h3);
   article.appendChild(footer);
-  article.appendChild(actionDiv);
+  article.appendChild(actionsDiv);
 
-  return article;
-
+  return article
 }
 
 /**
@@ -77,11 +72,11 @@ function createTopicArticle(topic) {
  */
 function renderTopics() {
   // ... your implementation here ...
-  topicListContainer.innerHTML = '';
-  for(const topic of topics){
-    const article = createTopicArticle(topic);
-    topicListContainer.appendChild(article);
-  }
+  topicList.innerHTML = '';
+  topics.forEach(topic => {
+    let article = createTopicArticle(topic);
+    topicList.appendChild(article);
+  });
 }
 
 /**
@@ -105,25 +100,18 @@ function renderTopics() {
 function handleCreateTopic(event) {
   // ... your implementation here ...
   event.preventDefault();
-  
-  const subjectInput = document.getElementById('topic-subject');
-  const messageInput = document.getElementById('topic-message');
-  if (!subjectInput || !messageInput) return;
-
-  const subject = subjectInput.value.trim();
-  const message = messageInput.value.trim();
-  
-  const newTopic={
+  let subjectInput = document.querySelector('#topic-subject');
+  let messageInput = document.querySelector('#topic-message');
+  let obj = {
     id: `topic_${Date.now()}`,
-    subject : subject,
-    message : message,
+    subject: subjectInput.value,
+    message: messageInput.value,
     author: 'Student',
-    date: new Date().toISOString().split('T')[0],
+    date: new Date().toISOString().split('T')[0]
   };
-
-  topics.push(newTopic);
+  topics.push(obj);
   renderTopics();
-  newTopicForm.reset();
+  event.target.reset();
 }
 
 /**
@@ -138,19 +126,11 @@ function handleCreateTopic(event) {
  */
 function handleTopicListClick(event) {
   // ... your implementation here ...
-
-  const target = event.target;
-
-  if (!(target instanceof HTMLElement)) return;
-  if (!target.classList.contains('delete-btn')) return;
-
-  const topicId = target.dataset.id;
-  if (!topicId) return;
-
-  topics = topics.filter((topic) => topic.id !== topicId);
-
-  renderTopics();
-
+  if (event.target.classList.contains('delete-btn')) {
+    let id = event.target.getAttribute('data-id');
+    topics = topics.filter(topic => topic.id !== id);
+    renderTopics();
+  }
 }
 
 /**
@@ -164,34 +144,18 @@ function handleTopicListClick(event) {
  * 5. Add the 'click' event listener to `topicListContainer` (calls `handleTopicListClick`).
  */
 async function loadAndInitialize() {
-  // ... your implementation here ...cha
+  // ... your implementation here ...
   try {
-    
-    const response = await fetch('api/topics.json');
-
+    let response = await fetch('api/topics.json');
     if (response.ok) {
-      
-      const data = await response.json();
-      topics = Array.isArray(data) ? data : [];
-    } else {
-      console.error('Failed to load topics.json, status:', response.status);
-      topics = [];
+      topics = await response.json();
     }
-  } catch (error) {
-    console.error('Error fetching topics.json:', error);
+  } catch (err) {
     topics = [];
   }
-
   renderTopics();
-  
-  if (newTopicForm) {
-    newTopicForm.addEventListener('submit', handleCreateTopic);
-  }
-  
-  if (topicListContainer) {
-    topicListContainer.addEventListener('click', handleTopicListClick);
-  }
-
+  newTopic.addEventListener('submit', handleCreateTopic);
+  topicList.addEventListener('click', handleTopicListClick);
 }
 
 // --- Initial Page Load ---

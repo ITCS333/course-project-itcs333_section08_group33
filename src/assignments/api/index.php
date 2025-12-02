@@ -63,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 class Database {
     public function getConnection() {
         // TODO: Replace with your real XAMPP credentials if different
-        $dsn  = 'mysql:host=127.0.0.1;dbname=school;charset=utf8mb4'; // may need update
+        $dsn  = 'mysql:host=$host;dbname=$db;'; // may need update
         $user = 'admin'; // may need update
         $pass = 'password123'; // may need update
         $options = [

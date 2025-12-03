@@ -63,32 +63,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 class Database {
     public function getConnection() {
         // TODO: Replace with your real XAMPP credentials if different
-        //$dsn  = 'mysql:host=$host;dbname=$db;'; // may need update
-        //$user = 'admin'; // may need update
-        //$pass = 'password123'; // may need update
-        //$options = [
-            //PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION, // throw exceptions
-            //PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,       // associative arrays
-            //PDO::ATTR_EMULATE_PREPARES   => false,                  // use real prepared statements
-        //];
-        //return new PDO($dsn, $user, $pass, $options);
-    //}
-        <?php
-$host = 'localhost';
-$db   = 'course';
-$user = 'admin';
-$pass = 'password123';
+        $dsn  = 'mysql:host=127.0.0.1;dbname=school;charset;utf8mb4;'; // may need update
+        $user = 'root'; // may need update
+        $pass = ''; // may need update
+        $options = [
+            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION, // throw exceptions
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,       // associative arrays
+            PDO::ATTR_EMULATE_PREPARES   => false,                  // use real prepared statements
+        ];
+        return new PDO($dsn, $user, $pass, $options);
+    }
 
-$dsn = "mysql:host=$host;dbname=$db;";
-
-try {
-    $pdo = new PDO($dsn, $user, $pass);
-    echo "Connected successfully";
-} catch (\PDOException $e) {
-    throw new \PDOException($e->getMessage(), (int)$e->getCode());
-}
-?>
-    
 }
 
 // TODO: Create database connection

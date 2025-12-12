@@ -63,9 +63,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 class Database {
     public function getConnection() {
         // TODO: Replace with your real XAMPP credentials if different
-        $dsn  = 'mysql:host=127.0.0.1;dbname=school;charset;utf8mb4;'; // may need update
-        $user = 'root'; // may need update
-        $pass = ''; // may need update
+        $host = "localhost";
+        $user = "admin";
+        password = "password123";
+        $database = "course";
+        $dsn  = "mysql:host=$host;dbname=$database";$user;$password;; // may need update
         $options = [
             PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION, // throw exceptions
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,       // associative arrays

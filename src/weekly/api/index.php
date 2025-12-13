@@ -1,5 +1,9 @@
 <?php
 
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
+$_SESSION['dummy'] = true;
 /**
  * Weekly Course Breakdown API
  * 
@@ -205,7 +209,7 @@ function getWeekById($db, $weekId)
         $week['links'] = $week['links'] ? json_decode($week['links']) : [];
     } catch (PDOException $e) {
         error_log($e->getMessage());
-         sendError("get week by id database statement failed.", 404);
+        sendError("get week by id database statement failed.", 404);
     }
 }
 

@@ -62,8 +62,17 @@ if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'OPTIONS
 
 // Implementation (preserve TODO comment above):
 // $db = (new Database())->getConnection(); // Uncomment when using a real DB
-$db = null; // placeholder for compatibility with function signatures
-
+try {
+    $dsn = "mysql:host={$DB_HOST};dbname={$DB_NAME};charset=utf8mb4";
+    $db = new PDO($dsn, $DB_USER, $DB_PASS, [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES => false,
+    ]);
+} catch (PDOException $e) {
+    error_log('DB Connection Error: ' . $e->getMessage());
+    sendResponse(['success' => false, 'message' => 'Database connection failed'], 500);
+}
 // TODO: Get the HTTP request method
 // Use $_SERVER['REQUEST_METHOD']
 
@@ -116,40 +125,36 @@ function getStudents($db) {
     
     // TODO: Return JSON response with success status and data
     // Implementation inserted below the TODO comments.
-    global $dataFile, $query;
-    $students = [];
-    if (file_exists($dataFile)) {
-        $json = file_get_contents($dataFile);
-        $students = json_decode($json, true) ?: [];
+  global $query;
+
+    // Search & filter
+    $search = isset($query['search']) ? trim((string)$query['search']) : '';
+
+    // Sort validation to prevent SQL injection
+    $allowedSort = ['name', 'student_id', 'email'];
+    $sort = isset($query['sort']) && in_array($query['sort'], $allowedSort, true) ? $query['sort'] : 'created_at';
+    $order = strtolower($query['order'] ?? 'asc');
+    $order = ($order === 'desc') ? 'DESC' : 'ASC';
+
+    $sql = "SELECT id, student_id, name, email, created_at FROM students";
+    $params = [];
+    if ($search !== '') {
+        $sql .= " WHERE name LIKE :q OR student_id LIKE :q OR email LIKE :q";
+        $params[':q'] = '%' . $search . '%';
     }
 
-    // Optional search filtering
-    $search = $query['search'] ?? null;
-    if ($search) {
-        $term = mb_strtolower(trim($search));
-        $students = array_values(array_filter($students, function ($s) use ($term) {
-            return (mb_stripos($s['name'] ?? '', $term) !== false)
-                || (mb_stripos($s['student_id'] ?? '', $term) !== false)
-                || (mb_stripos($s['email'] ?? '', $term) !== false);
-        }));
+    // If user didn't provide a valid sort, default to created_at
+    if (!in_array($sort, $allowedSort, true)) {
+        $sort = 'created_at';
     }
+    $sql .= " ORDER BY {$sort} {$order}";
 
-    // Optional sorting
-    $sort = $query['sort'] ?? null;
-    $order = strtolower($query['order'] ?? 'asc') === 'desc' ? 'desc' : 'asc';
-    $allowed = ['name', 'student_id', 'email'];
-    if ($sort && in_array($sort, $allowed, true)) {
-        usort($students, function ($a, $b) use ($sort, $order) {
-            $va = $a[$sort] ?? '';
-            $vb = $b[$sort] ?? '';
-            if ($sort === 'student_id') {
-                $res = strcmp((string)$va, (string)$vb);
-            } else {
-                $res = mb_strcasecmp((string)$va, (string)$vb);
-            }
-            return $order === 'asc' ? $res : -$res;
-        });
+    $stmt = $db->prepare($sql);
+    foreach ($params as $k => $v) {
+        $stmt->bindValue($k, $v, PDO::PARAM_STR);
     }
+    $stmt->execute();
+    $students = $stmt->fetchAll();
 
     sendResponse(['success' => true, 'data' => $students]);
 }
@@ -433,33 +438,57 @@ function changePassword($db, $data) {
     // If yes, return success response
     // If no, return error response with 500 status
     // Implementation inserted below the TODO comments.
-    global $dataFile;
-    $student_id = $data['student_id'] ?? '';
-    $current = $data['current_password'] ?? '';
-    $new = $data['new_password'] ?? '';
-    if (!$student_id || !$current || !$new) sendResponse(['success' => false, 'message' => 'Missing required fields'], 400);
-    if (strlen($new) < 8) sendResponse(['success' => false, 'message' => 'New password must be at least 8 characters'], 400);
+   $student_id = (string)($data['student_id'] ?? '');
+    if ($student_id === '') {
+        sendResponse(['success' => false, 'message' => 'student_id is required'], 400);
+    }
 
-    $students = file_exists($dataFile) ? (json_decode(file_get_contents($dataFile), true) ?: []) : [];
-    $foundIndex = null;
-    foreach ($students as $i => $s) {
-        if ((string)($s['student_id'] ?? '') === (string)$student_id) {
-            $foundIndex = $i;
-            break;
+    // Check if student exists
+    $existsStmt = $db->prepare('SELECT id FROM students WHERE student_id = :sid LIMIT 1');
+    $existsStmt->execute([':sid' => $student_id]);
+    $existing = $existsStmt->fetch();
+    if (!$existing) {
+        sendResponse(['success' => false, 'message' => 'Student not found'], 404);
+    }
+
+    $fields = [];
+    $params = [':sid' => $student_id];
+
+    if (array_key_exists('name', $data)) {
+        $name = sanitizeInput($data['name']);
+        $fields[] = 'name = :name';
+        $params[':name'] = $name;
+    }
+
+    if (array_key_exists('email', $data)) {
+        $email = sanitizeInput($data['email']);
+        if (!validateEmail($email)) {
+            sendResponse(['success' => false, 'message' => 'Invalid email format'], 400);
         }
+        // Check duplicate email excluding current student
+        $dupEmail = $db->prepare('SELECT 1 FROM students WHERE email = :email AND student_id <> :sid LIMIT 1');
+        $dupEmail->execute([':email' => $email, ':sid' => $student_id]);
+        if ($dupEmail->fetch()) {
+            sendResponse(['success' => false, 'message' => 'Email already in use'], 409);
+        }
+        $fields[] = 'email = :email';
+        $params[':email'] = $email;
     }
-    if ($foundIndex === null) sendResponse(['success' => false, 'message' => 'Student not found'], 404);
 
-    $hash = $students[$foundIndex]['password'] ?? '';
-    if (!password_verify($current, $hash)) sendResponse(['success' => false, 'message' => 'Current password incorrect'], 401);
-
-    $students[$foundIndex]['password'] = password_hash($new, PASSWORD_DEFAULT);
-    $students[$foundIndex]['updated_at'] = date(DATE_ATOM);
-
-    if (file_put_contents($dataFile, json_encode($students, JSON_PRETTY_PRINT))) {
-        sendResponse(['success' => true, 'message' => 'Password updated']);
+    if (empty($fields)) {
+        sendResponse(['success' => false, 'message' => 'No fields to update'], 400);
     }
-    sendResponse(['success' => false, 'message' => 'Failed to update password'], 500);
+
+    $sql = 'UPDATE students SET ' . implode(', ', $fields) . ' WHERE student_id = :sid';
+    $upd = $db->prepare($sql);
+    $ok = $upd->execute($params);
+    if (!$ok) {
+        sendResponse(['success' => false, 'message' => 'Failed to update student'], 500);
+    }
+
+    $outStmt = $db->prepare('SELECT id, student_id, name, email, created_at FROM students WHERE student_id = :sid');
+    $outStmt->execute([':sid' => $student_id]);
+    sendResponse(['success' => true, 'data' => $outStmt->fetch()]);
 }
 
 

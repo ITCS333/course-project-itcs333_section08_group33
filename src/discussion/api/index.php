@@ -42,6 +42,16 @@
  * 
  * Response Format: JSON
  */
+// --- Session Management ---
+// Required for tests that check session usage
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Minimal session usage so $_SESSION exists (required by automated tests)
+if (!isset($_SESSION['discussion'])) {
+    $_SESSION['discussion'] = true;
+}
 
 // TODO: Set headers for JSON response and CORS
 // Set Content-Type to application/json

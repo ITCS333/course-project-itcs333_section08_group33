@@ -10,7 +10,6 @@
 
   3. Implement the TODOs below.
 */
-<script src="list.js" defer></script>
 
 // --- Element Selections ---
 // TODO: Select the section for the assignment list ('#assignment-list-section').

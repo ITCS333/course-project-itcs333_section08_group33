@@ -65,15 +65,15 @@ class Database {
         // TODO: Replace with your real XAMPP credentials if different
         $host = "localhost";
         $user = "admin";
-        password = "password123";
+        $password = "password123";
         $database = "course";
-        $dsn  = "mysql:host=$host;dbname=$database";$user;$password;; // may need update
+        $dsn  = "mysql:host=$host;dbname=$database";charset=utf8mb4"; // may need update
         $options = [
             PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION, // throw exceptions
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,       // associative arrays
             PDO::ATTR_EMULATE_PREPARES   => false,                  // use real prepared statements
         ];
-        return new PDO($dsn, $user, $pass, $options);
+        return new PDO($dsn, $user, $password, $options);
     }
 
 }

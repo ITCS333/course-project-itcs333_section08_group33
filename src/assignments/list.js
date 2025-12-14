@@ -94,3 +94,11 @@ async function loadAssignments() {
 // --- Initial Page Load ---
 // Call the function to populate the page.
 loadAssignments();
+
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    createAssignmentArticle,
+    loadAssignments,
+  };
+}

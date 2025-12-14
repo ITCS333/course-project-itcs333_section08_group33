@@ -39,10 +39,11 @@ header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
 // Database connection settings (must match your MariaDB setup)
 // DB: course | User: admin | Pass: password123 | Host: 127.0.0.1
-$DB_HOST = '127.0.0.1';
-$DB_NAME = 'course';
-$DB_USER = 'admin';
-$DB_PASS = 'password123';
+$DB_HOST = getenv('DB_HOST') ?: '127.0.0.1';
+$DB_NAME = getenv('DB_NAME') ?: 'course';
+$DB_USER = getenv('DB_USER') ?: 'admin';
+$DB_PASS = getenv('DB_PASS') ?: 'password123';
+
 // TODO: Handle preflight OPTIONS request
 // If the request method is OPTIONS, return 200 status and exit
 
@@ -137,23 +138,12 @@ function getStudents($db) {
     $search = isset($query['search']) ? trim((string)$query['search']) : '';
 
     // Sort validation to prevent SQL injection
-    $allowedSort = ['name', 'student_id', 'email'];
+    $allowedSort = ['name', 'student_id', 'email', 'created_at'];
     $sort = isset($query['sort']) && in_array($query['sort'], $allowedSort, true) ? $query['sort'] : 'created_at';
     $order = strtolower($query['order'] ?? 'asc');
     $order = ($order === 'desc') ? 'DESC' : 'ASC';
+    $sql .= " ORDER BY $sort $order";
 
-    $sql = "SELECT id, student_id, name, email, created_at FROM students";
-    $params = [];
-    if ($search !== '') {
-        $sql .= " WHERE name LIKE :q OR student_id LIKE :q OR email LIKE :q";
-        $params[':q'] = '%' . $search . '%';
-    }
-
-    // If user didn't provide a valid sort, default to created_at
-    if (!in_array($sort, $allowedSort, true)) {
-        $sort = 'created_at';
-    }
-    $sql .= " ORDER BY {$sort} {$order}";
 
     $stmt = $db->prepare($sql);
     foreach ($params as $k => $v) {
@@ -332,11 +322,12 @@ function updateStudent($db, $data) {
     $fields = [];
     $params = [':sid' => $student_id];
 
-    if (array_key_exists('name', $data)) {
-        $name = sanitizeInput($data['name']);
-        $fields[] = 'name = :name';
-        $params[':name'] = $name;
-    }
+    if (array_key_exists('name', $data) && is_string($data['name']) && trim($data['name']) !== '') {
+    $name = sanitizeInput($data['name']);
+    $fields[] = 'name = :name';
+    $params[':name'] = $name;
+}
+
 
     if (array_key_exists('email', $data)) {
         $email = sanitizeInput($data['email']);

@@ -51,4 +51,4 @@
 ## A link to your live, hosted application on Replit.
 
 _*to do*_!
-<a href="https://github.com/ITCS333/course-project-itcs333_section08_group33.git" target="_blank" > Click to View The Application on Replit </a>
+<a href="https://replit.com/@hassanalramil43/ITCS333-Course-Project-2?v=1" target="_blank" > Click to View The Application on Replit </a>

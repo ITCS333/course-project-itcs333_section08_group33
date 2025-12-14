@@ -67,7 +67,7 @@ class Database {
         $user = "admin";
         $password = "password123";
         $database = "course";
-        $dsn  = "mysql:host=$host;dbname=$database";charset=utf8mb4"; // may need update
+        $dsn = "mysql:host=$host;dbname=$database;charset=utf8mb4"; // may need update
         $options = [
             PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION, // throw exceptions
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,       // associative arrays
@@ -475,7 +475,7 @@ function getCommentsByAssignment($db, $assignmentId) {
 
     
     // TODO: Bind the :assignment_id parameter
-    $stmt->bindParam(':assignment_id', $assignmentId, PDO::PARAM_INT);
+    $stmt->bindParam(':assignment_id', $assignmentId, PDO::PARAM_STR);
 
     
     // TODO: Execute the statement
@@ -511,7 +511,7 @@ function createComment($db, $data) {
     }
     
     // TODO: Sanitize input data
-    $assignmentId = (int)$data->assignment_id;
+    $assignmentId = (string)$data->assignment_id;
     $author = sanitizeInput($data->author);
     $text = sanitizeInput($data->text);
     
@@ -610,83 +610,94 @@ function deleteComment($db, $commentId) {
 // ============================================================================
 
 try {
-    // TODO: Get the 'resource' query parameter to determine which resource to access
+    // Get the 'resource' query parameter to determine which resource to access
     $resource = $_GET['resource'] ?? null;
 
-    
-    // TODO: Route based on HTTP method and resource type
+    // Route based on HTTP method and resource type
     
     if ($method === 'GET') {
-        // TODO: Handle GET requests
+        // Handle GET requests (retrieve operations)
         
         if ($resource === 'assignments') {
-            // TODO: Check if 'id' query parameter exists
+            // Check if 'id' query parameter exists to get single assignment
+            if (isset($_GET['id']) && !empty($_GET['id'])) {
+                // Get single assignment by ID
+                getAssignmentById($db, $_GET['id']);
+            } else {
+                // Get all assignments (with optional filters)
+                getAllAssignments($db);
+            }
             
         } elseif ($resource === 'comments') {
-            // TODO: Check if 'assignment_id' query parameter exists
+            // Check if 'assignment_id' query parameter exists to get comments for assignment
             $assignmentId = $_GET['assignment_id'] ?? null;
             getCommentsByAssignment($db, $assignmentId);
+            
         } else {
-            // TODO: Invalid resource, return 400 error
-            sendResponse(['error' => 'Invalid resource'], 400);
+            // Invalid resource, return 400 Bad Request
+            sendResponse(['error' => 'Invalid resource. Supported resources: assignments, comments'], 400);
         }
         
     } elseif ($method === 'POST') {
-        // TODO: Handle POST requests (create operations)
+        // Handle POST requests (create operations)
         
         if ($resource === 'assignments') {
-            // TODO: Call createAssignment($db, $data)
+            // Create a new assignment from JSON body data
+            createAssignment($db, $data);
             
         } elseif ($resource === 'comments') {
-            // TODO: Call createComment($db, $data)
+            // Create a new comment from JSON body data
             createComment($db, $data);
+            
         } else {
-            // TODO: Invalid resource, return 400 error
-            sendResponse(['error' => 'Invalid resource'], 400);
+            // Invalid resource, return 400 Bad Request
+            sendResponse(['error' => 'Invalid resource. Supported resources: assignments, comments'], 400);
         }
         
     } elseif ($method === 'PUT') {
-        // TODO: Handle PUT requests (update operations)
+        // Handle PUT requests (update operations)
         
         if ($resource === 'assignments') {
-            // TODO: Call updateAssignment($db, $data)
+            // Update an existing assignment from JSON body data
+            updateAssignment($db, $data);
             
         } else {
-            // TODO: PUT not supported for other resources
-            sendResponse(['error' => 'PUT not supported for this resource'], 405);
-
+            // PUT method not supported for other resources
+            sendResponse(['error' => 'PUT method not supported for this resource. Only assignments can be updated.'], 405);
         }
         
     } elseif ($method === 'DELETE') {
-        // TODO: Handle DELETE requests
+        // Handle DELETE requests
         
         if ($resource === 'assignments') {
-            // TODO: Get 'id' from query parameter or request body
+            // Get assignment 'id' from query parameter to delete assignment
+            $assignmentId = $_GET['id'] ?? null;
+            deleteAssignment($db, $assignmentId);
             
         } elseif ($resource === 'comments') {
-            // TODO: Get comment 'id' from query parameter
+            // Get comment 'id' from query parameter to delete comment
             $commentId = $_GET['id'] ?? null;
             deleteComment($db, $commentId);
+            
         } else {
-            // TODO: Invalid resource, return 400 error
-            sendResponse(['error' => 'Invalid resource'], 400);
-
+            // Invalid resource, return 400 Bad Request
+            sendResponse(['error' => 'Invalid resource. Supported resources: assignments, comments'], 400);
         }
         
     } else {
-        // TODO: Method not supported
-        sendResponse(['error' => 'Method not supported'], 405);
-
+        // HTTP method not supported (should only be GET, POST, PUT, DELETE, OPTIONS)
+        sendResponse(['error' => 'Method not supported. Supported methods: GET, POST, PUT, DELETE'], 405);
     }
     
 } catch (PDOException $e) {
-    // TODO: Handle database errors
-    sendResponse(['error' => 'Database error: ' . $e->getMessage()], 500);
-
+    // Handle database-specific errors (connection issues, SQL syntax, etc.)
+    error_log("Database error: " . $e->getMessage());
+    sendResponse(['error' => 'Database operation failed. Please try again later.'], 500);
+    
 } catch (Exception $e) {
-    // TODO: Handle general errors
-    sendResponse(['error' => 'Server error: ' . $e->getMessage()], 500);
-
+    // Handle general PHP errors (validation, logic errors, etc.)
+    error_log("Server error: " . $e->getMessage());
+    sendResponse(['error' => 'Server error occurred. Please contact administrator.'], 500);
 }
 
 

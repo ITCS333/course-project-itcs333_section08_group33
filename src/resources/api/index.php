@@ -66,6 +66,15 @@ header('Access-Control-Allow-Headers: Content-Type, Authorization');
 // TODO: Handle preflight OPTIONS request
 // If the request method is OPTIONS, return 200 status and exit
 
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+if (!isset($_SESSION['user'])) {
+    $_SESSION['user'] = null;
+}
+
+// Handle preflight OPTIONS request
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit;
@@ -108,6 +117,11 @@ $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
 $rawBody = file_get_contents('php://input');
 $jsonBody = json_decode($rawBody, true);
+
+if (!is_array($jsonBody)) {
+    $jsonBody = [];
+}
+
 
 
 // TODO: Parse query parameters
@@ -182,7 +196,7 @@ function getAllResources($db) {
     
     // TODO: Return JSON response with success status and data
     // Use the helper function sendResponse()
-    if ($db === null) {
+    if (!$dbAvailable) {
         $all = readJsonFile(__DIR__ . '/resources.json');
 
         $search = $_GET['search'] ?? null;
@@ -482,7 +496,7 @@ function deleteResource($db, $resourceId) {
         
         // TODO: Return success response with 200 status
         $db->beginTransaction();
-        $stmt = $db->prepare('DELETE FROM comments WHERE resource_id = ?');
+        $stmt = $db->prepare('DELETE FROM comments_resource WHERE resource_id = ?');
         $stmt->execute([$resourceId]);
         $stmt = $db->prepare('DELETE FROM resources WHERE id = ?');
         $stmt->execute([$resourceId]);
@@ -541,7 +555,7 @@ function getCommentsByResourceId($db, $resourceId) {
     }
 
     try {
-        $stmt = $db->prepare('SELECT id, resource_id, author, text, created_at FROM comments WHERE resource_id = ? ORDER BY created_at ASC');
+        $stmt = $db->prepare('SELECT id, resource_id, author, text, created_at FROM comments_resource WHERE resource_id = ? ORDER BY created_at ASC');
         $stmt->execute([$resourceId]);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
         sendResponse(['success' => true, 'data' => $rows]);
@@ -610,7 +624,8 @@ function createComment($db, $data) {
 
     try {
         $stmt = $db->prepare('SELECT id FROM resources WHERE id = ?'); $stmt->execute([$resourceId]); if (!$stmt->fetch()) sendResponse(['success' => false, 'message' => 'Resource not found'], 404);
-        $stmt = $db->prepare('INSERT INTO comments (resource_id, author, text) VALUES (?, ?, ?)'); $ok = $stmt->execute([$resourceId, $author, $text]); if ($ok) { $id = $db->lastInsertId(); sendResponse(['success' => true, 'id' => $id], 201); }
+        $stmt = $db->prepare('INSERT INTO comments_resource (resource_id, author, text) VALUES (?, ?, ?)');
+        $ok = $stmt->execute([$resourceId, $author, $text]); if ($ok) { $id = $db->lastInsertId(); sendResponse(['success' => true, 'id' => $id], 201); }
         sendResponse(['success' => false, 'message' => 'Failed to create comment'], 500);
     } catch (Exception $e) { sendResponse(['success' => false, 'message' => 'Failed to create comment'], 500); }
 }
@@ -653,7 +668,10 @@ function deleteComment($db, $commentId) {
         writeJsonFile(__DIR__ . '/comments.json', array_values($comments)); sendResponse(['success' => true], 200);
     }
 
-    try { $stmt = $db->prepare('DELETE FROM comments WHERE id = ?'); $ok = $stmt->execute([$commentId]); if ($ok) sendResponse(['success' => true], 200); sendResponse(['success' => false, 'message' => 'Delete failed'], 500); } catch (Exception $e) { sendResponse(['success' => false, 'message' => 'Delete failed'], 500); }
+    try { $stmt = $db->prepare('DELETE FROM comments_resource WHERE id = ?');
+         $ok = $stmt->execute([$commentId]); if ($ok) sendResponse(['success' => true], 200); 
+         sendResponse(['success' => false, 'message' => 'Delete failed'], 500); } catch (Exception $e) { sendResponse(['success' => false, 'message' => 'Delete failed'], 500); 
+        }
 }
 
 

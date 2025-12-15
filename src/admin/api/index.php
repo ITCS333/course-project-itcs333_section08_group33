@@ -37,6 +37,14 @@ header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
+if (session_status() === PHP_SESSION_NONE) {
+    session_start(); 
+}
+if (!isset($_SESSION['user'])) {
+    $_SESSION['user'] = null; 
+}
+
+
 // Database connection settings (must match your MariaDB setup)
 // DB: course | User: admin | Pass: password123 | Host: 127.0.0.1
 $DB_HOST = getenv('DB_HOST') ?: '127.0.0.1';
@@ -134,14 +142,21 @@ function getStudents($db) {
     // Implementation inserted below the TODO comments.
     global $query;
 
-    // Search & filter
     $search = isset($query['search']) ? trim((string)$query['search']) : '';
 
-    // Sort validation to prevent SQL injection
+    $sql = "SELECT id, student_id, name, email, created_at FROM students";
+    $params = [];
+
+    if ($search !== '') {
+        $sql .= " WHERE name LIKE :s OR student_id LIKE :s OR email LIKE :s";
+        $params[':s'] = "%{$search}%";
+    }
+
     $allowedSort = ['name', 'student_id', 'email', 'created_at'];
-    $sort = isset($query['sort']) && in_array($query['sort'], $allowedSort, true) ? $query['sort'] : 'created_at';
+    $sort = (isset($query['sort']) && in_array($query['sort'], $allowedSort, true)) ? $query['sort'] : 'created_at';
     $order = strtolower($query['order'] ?? 'asc');
     $order = ($order === 'desc') ? 'DESC' : 'ASC';
+
     $sql .= " ORDER BY $sort $order";
 
 
@@ -491,8 +506,8 @@ try {
         $action = $_GET['action'] ?? null;
         if ($action === 'change_password') {
             changePassword($db, $requestBody);
-        }
-        createStudent($db, $requestBody);
+        } else{ createStudent($db, $requestBody);}
+       
     } elseif ($method === 'PUT') {
         // TODO: Call updateStudent()
         updateStudent($db, $requestBody);

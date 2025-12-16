@@ -154,28 +154,35 @@ function handleAddComment(event) {
  * 8. If the week is not found, display an error in `weekTitle`.
  */
 async function initializePage() {
-  // ... your implementation here ...
   currentWeekId = getWeekIdFromURL();
   if (!currentWeekId) {
     weekTitle.textContent = "Week not found.";
     return;
   }
-  let weekData = [];
-  let commentsData = [];
+  let weekNumber = getNumericWeekId(currentWeekId);
 
-  weekData = await (await fetch('./api/weeks.json')).json();
-  commentsData = await (await fetch('./api/comments.json')).json();
-  let week = weekData.find(a => a.id == currentWeekId);
+  let weekData = await (await fetch('api/index.php?resource=weeks')).json();
+  let commentsData = await (await fetch('api/index.php?resource=comments&id=' + weekNumber)).json();
 
-  currentComments = commentsData[currentWeekId] || [];
+  let weekArray = weekData.data || [];
+  let week = weekArray.find(a => a.id == weekNumber);
+
+  currentComments = Array.isArray(commentsData.data) ? commentsData.data : [];
+
   if (week) {
     renderWeekDetails(week);
     renderComments();
     commentForm.addEventListener('submit', handleAddComment);
   } else {
-    console.log("Week not found.");
+    weekTitle.textContent = "Week not found.";
   }
 }
 
 // --- Initial Page Load ---
 initializePage();
+
+function getNumericWeekId(weekId) {
+  if (!weekId) return null;
+  const match = weekId.match(/\d+$/);
+  return match ? Number(match[0]) : null;
+}

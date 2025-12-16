@@ -194,18 +194,15 @@ function handleTableClick(event) {
 async function loadAndInitialize() {
   // ... your implementation here ...
   try {
-    let resp = await fetch('api/index.php?resource=weeks');
+    let resp = await fetch('api/weeks.json');
     if (!resp.ok) {
-      resp = await fetch('api/index.php?resource=weeks');
+      resp = await fetch('weeks.json');
     }
     if (resp.ok) {
-  const data = await resp.json();
-  if (data && Array.isArray(data.data)) {
-    weeks = data.data;
-  } else {
-    weeks = [];
-  }
-}
+      const data = await resp.json();
+      if (Array.isArray(data)) weeks = data;
+      else if (data && Array.isArray(data.weeks)) weeks = data.weeks;
+    }
   } catch (err) {
     console.error('Failed to load weeks.json:', err);
   }

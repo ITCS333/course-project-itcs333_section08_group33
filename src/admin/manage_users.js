@@ -296,17 +296,18 @@ function handleSort(event) {
  * - "click" on each header in `tableHeaders` -> `handleSort`
  */
 async function loadStudentsAndInitialize() {
-  let stuData = await (await fetch('api/index.php')).json();
+  // ... your implementation here ...
+  stuData = await (await fetch('./api/students.json')).json();
 
-  students = Array.isArray(stuData.data) ? stuData.data : [];
+  students = stuData;
 
   renderTable(students);
 
-  passwordForm.addEventListener('submit', handleChangePassword);
-  addStudentForm.addEventListener('submit', handleAddStudent);
-  tbody.addEventListener('click', handleTableClick);
-  searchInput.addEventListener('input', handleSearch);
-  thAll.forEach(th => th.addEventListener('click', handleSort));
+  passwordForm.addEventListener('submit', function (event) { handleChangePassword(event) });
+  addStudentForm.addEventListener('submit', function (event) { handleAddStudent(event) });
+  tbody.addEventListener('click', function (event) { handleTableClick(event) });
+  searchInput.addEventListener('input', function (event) { handleSearch(event) });
+  thAll.forEach(th => { th.addEventListener('click', function (event) { handleSort(event) }) });
 }
 
 // --- Initial Page Load ---

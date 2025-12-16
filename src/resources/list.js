@@ -56,7 +56,7 @@ function createResourceArticle(resource) {
  */
 async function loadResources() {
   // ... your implementation here ...
-  let response = await fetch('resources.json');
+  let response = await fetch('api/resources.json');
   let resources = await response.json();
 
   listSection.innerHTML = '';

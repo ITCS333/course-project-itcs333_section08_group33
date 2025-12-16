@@ -29,7 +29,7 @@ function createResourceArticle(resource) {
 
   let h2 = document.createElement('h2');
   h2.textContent = resource.title;
-  article.appendChilf(h2);
+  article.appendChild(h2);
 
   let p = document.createElement('p');
   p.textContent = resource.description;
@@ -56,8 +56,10 @@ function createResourceArticle(resource) {
  */
 async function loadResources() {
   // ... your implementation here ...
-  let response = await fetch('api/resources.json');
-  let resources = await response.json();
+  let response = await fetch('api/index.php');
+  let data = await response.json();
+  // Use .data property from API response
+  let resources = Array.isArray(data.data) ? data.data : [];
 
   listSection.innerHTML = '';
 

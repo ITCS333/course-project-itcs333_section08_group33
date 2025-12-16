@@ -86,24 +86,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 // Example: require_once '../config/Database.php';
 
 // Try to use a PDO database connection if available, otherwise fall back to JSON files
-$db = null;
-$dbAvailable = false;
-if (file_exists(__DIR__ . '/../config/Database.php')) {
-    require_once __DIR__ . '/../config/Database.php';
-    try {
-        $database = new Database();
-        $db = $database->getConnection();
-        $dbAvailable = ($db instanceof PDO);
-    } catch (Throwable $e) {
-        $dbAvailable = false;
-    }
-}
+require_once __DIR__ . '/../../config/Database.php';
 
 
 // TODO: Get the PDO database connection
 // Example: $database = new Database();
 // Example: $db = $database->getConnection();
-
+try {
+    $database = new Database();
+    $db = $database->getConnection();
+} catch (PDOException $e) {
+    sendError("Database connection failed.", 500);
+}
 
 // TODO: Get the HTTP request method
 // Use $_SERVER['REQUEST_METHOD']
@@ -196,7 +190,6 @@ function getAllResources($db) {
     
     // TODO: Return JSON response with success status and data
     // Use the helper function sendResponse()
-    if (!$dbAvailable) {
         $all = readJsonFile(__DIR__ . '/resources.json');
 
         $search = $_GET['search'] ?? null;
@@ -222,7 +215,6 @@ function getAllResources($db) {
         });
 
         sendResponse(['success' => true, 'data' => $all]);
-    }
 
     try {
         $sql = 'SELECT id, title, description, link, created_at FROM resources';

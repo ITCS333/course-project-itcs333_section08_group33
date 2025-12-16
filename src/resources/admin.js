@@ -190,32 +190,23 @@ function handleTableClick(event) {
  * 5. Add the 'click' event listener to `resourcesTableBody` (calls `handleTableClick`).
  */
 async function loadAndInitialize() {
-  // ... your implementation here ...
-
   try {
-    // Attempt to load resources from the API folder relative to this page
-    let resp = await fetch('api/resources.json');
-    if (!resp.ok) {
-      // Fallback to resources.json in same folder if present
-      resp = await fetch('resources.json');
-    }
-
+    let resp = await fetch('api/index.php');
     if (resp.ok) {
       const data = await resp.json();
-      if (Array.isArray(data)) {
-        resources = data;
-      } else if (data && Array.isArray(data.resources)) {
-        resources = data.resources;
+      if (data && Array.isArray(data.data)) {
+        resources = data.data;
+      } else {
+        resources = [];
       }
     }
   } catch (err) {
-    // Fail silently but log for debugging
-    console.error('Failed to load resources.json:', err);
+    console.error('Failed to load resources:', err);
+    resources = [];
   }
 
   renderTable();
 
-  // Wire up event listeners
   if (resourceForm) resourceForm.addEventListener('submit', handleAddResource);
   if (resourcesTableBody) resourcesTableBody.addEventListener('click', handleTableClick);
 }

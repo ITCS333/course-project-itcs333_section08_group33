@@ -274,7 +274,6 @@ function handleSort(event) {
       renderTable(students);
       break;
     default:
-      alert("handleSort dosen't handel this column name")
   }
 
 }

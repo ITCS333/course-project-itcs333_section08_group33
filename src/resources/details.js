@@ -42,8 +42,8 @@ function getResourceIdFromURL() {
   // ... your implementation here ...
   const queryString = window.location.search;
   const urlParams = new URLSearchParams(queryString);
-  assignmentId = urlParams.get('id');
-  return assignmentId;
+  const resourceId = urlParams.get('id');
+  return resourceId;
 }
 
 /**
@@ -111,12 +111,12 @@ function renderComments() {
  */
 function handleAddComment(event) {
   // ... your implementation here ...
-   event.preventDefault();
+  event.preventDefault();
   let commentText = newComment.value;
   if (commentText.trim() === '') {
     return;
   }
-  comment = {author:'Student', text:commentText};
+  comment = { author: 'Student', text: commentText };
   console.log(comment);
   currentComments.push(comment);
   renderComments();
@@ -143,25 +143,35 @@ function handleAddComment(event) {
 async function initializePage() {
   // ... your implementation here ...
   currentResourceId = getResourceIdFromURL();
-  if (currentResourceId == null) {
-    console.log("No resource ID found in URL.");
+  if (!currentResourceId) {
+    resourceTitle.textContent = "Resource not found.";
     return;
   }
-  let resourceData = [];
-  let commentsData = [];
+  let numericId = getNumericResourceId(currentResourceId);
+  let resourceResp = await fetch('api/index.php');
+  let commentsResp = await fetch('api/index.php?action=comments&resource_id=' + numericId);
+  let resourceData = await resourceResp.json();
+  let commentsData = await commentsResp.json();
 
-  resourceData = await (await fetch('./api/resources.json')).json();
-  commentsData = await (await fetch('./api/comments.json')).json();
+  let resourcesArray = Array.isArray(resourceData.data) ? resourceData.data : [];
 
-  let resource = resourceData.find(a => a.id == currentResourceId);
-  currentComments = commentsData[currentResourceId] || [];
+ let resource = resourcesArray.find(r => r.id === currentResourceId);
+
+
+  currentComments = Array.isArray(commentsData.data) ? commentsData.data : [];
+  console.log(currentComments);
+  console.log(resource);
   if (resource) {
     renderResourceDetails(resource);
     renderComments();
-    commentForm.addEventListener('submit', handleAddComment);
+    if (commentForm) commentForm.addEventListener('submit', handleAddComment);
   } else {
-    console.log("Resource not found.");
+    resourceTitle.textContent = "Resource not found.";
   }
+}
+
+function getNumericResourceId(resourceId) {
+  return Number(resourceId.replace(/\D/g, ''));
 }
 
 // --- Initial Page Load ---

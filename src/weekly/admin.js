@@ -192,25 +192,43 @@ function handleTableClick(event) {
  * 5. Add the 'click' event listener to `weeksTableBody` (calls `handleTableClick`).
  */
 async function loadAndInitialize() {
-  // ... your implementation here ...
+  let resp;
   try {
-    let resp = await fetch('api/weeks.json');
+    resp = await fetch('api/index.php?resource=weeks');
+
     if (!resp.ok) {
-      resp = await fetch('weeks.json');
+      resp = await fetch('api/index.php?resource=weeks');
     }
+
     if (resp.ok) {
       const data = await resp.json();
-      if (Array.isArray(data)) weeks = data;
-      else if (data && Array.isArray(data.weeks)) weeks = data.weeks;
+
+      if (Array.isArray(data)) {
+        weeks = data;
+      } else if (data && Array.isArray(data.weeks)) {
+        weeks = data.weeks;
+      } else if (data && Array.isArray(data.data)) {
+        weeks = data.data;
+      } else {
+        weeks = [];
+      }
+    } else {
+      console.warn('Failed to load weeks data from all sources. Status:', resp.status);
+      weeks = [];
     }
   } catch (err) {
-    console.error('Failed to load weeks.json:', err);
+    console.error('Failed to load weeks data:', err);
+    weeks = [];
   }
 
   renderTable();
 
-  if (weekForm) weekForm.addEventListener('submit', handleAddWeek);
-  if (weeksTableBody) weeksTableBody.addEventListener('click', handleTableClick);
+  if (weekForm) {
+    weekForm.addEventListener('submit', handleAddWeek);
+  }
+  if (weeksTableBody) {
+    weeksTableBody.addEventListener('click', handleTableClick);
+  }
 }
 
 // --- Initial Page Load ---
